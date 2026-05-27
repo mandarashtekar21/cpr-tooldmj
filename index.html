@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPR Decision Tool + Journal · NIFTY + SENSEX</title>
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --card: #FFFFFF;
+    --ink: #1A1A1A;
+    --ink-2: #5A5A5A;
+    --ink-3: #8A8A8A;
+    --ink-4: #B0B0B0;
+    --border: #E5E5E0;
+    --border-strong: #D5D5CF;
+    --green-dk: #0F6E56;
+    --green-md: #C6F0DD;
+    --green-lt: #E8F8F0;
+    --red-dk: #991B1B;
+    --red-md: #FECACA;
+    --red-lt: #FEE2E2;
+    --amber-md: #FEF3C7;
+    --amber-dk: #B45309;
+    --info-bg: #EFF6FF;
+    --info-ink: #1E40AF;
+    --secondary-bg: #F5F5EF;
+    --indigo: #534AB7;
+    --tab-active: #1A1A1A;
+    --tab-inactive: #8A8A8A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    margin: 0;
+    padding: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container { max-width: 1320px; margin: 0 auto; }
+  h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--ink-2); margin: 0 0 4px; }
+  .period { font-size: 11px; color: var(--ink-3); margin: 0 0 14px; }
+  h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  h3 { font-size: 12px; font-weight: 600; margin: 0 0 8px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Top bar with sync status */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .sync-online { background: var(--green-lt); color: var(--green-dk); }
+  .sync-offline { background: var(--red-lt); color: var(--red-dk); }
+  .sync-pending { background: var(--amber-md); color: var(--amber-dk); }
+  .sync-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    display: inline-block;
+  }
+  .dot-online { background: var(--green-dk); }
+  .dot-offline { background: var(--red-dk); }
+  .dot-pending { background: var(--amber-dk); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .settings-btn {
+    background: white;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--ink-2);
+  }
+  .settings-btn:hover { background: var(--secondary-bg); }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 18px;
+    overflow-x: auto;
+  }
+  .tab {
+    background: none;
+    border: none;
+    padding: 11px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--tab-inactive);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    white-space: nowrap;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab.active { color: var(--tab-active); border-bottom-color: var(--tab-active); }
+  .tab .badge {
+    background: var(--ink);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  /* Modal */
+  .modal-bg {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-bg.shown { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal h2 { font-size: 18px; margin-bottom: 14px; }
+  .modal-close {
+    float: right;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--ink-3);
+    line-height: 1;
+    padding: 0 4px;
+  }
+
+  /* Input controls */
+  .index-toggle {
+    display: inline-flex;
+    background: var(--secondary-bg);
+    border-radius: 8px;
+    padding: 3px;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+  .index-toggle button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--ink-2);
+    transition: all 0.15s;
+  }
+  .index-toggle button.active {
+    background: var(--ink);
+    color: white;
+  }
+
+  .input-group { margin-bottom: 12px; }
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .input-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .input-label {
+    font-size: 11px;
+    color: var(--ink-2);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+    display: block;
+    font-weight: 500;
+  }
+  input[type="number"], input[type="text"], input[type="date"], textarea, select {
+    width: 100%;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    font-family: 'SF Mono', Consolas, monospace;
+    background: white;
+    transition: border-color 0.15s;
+  }
+  input[type="text"], textarea, select {
+    font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--info-ink);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+
+  .advanced-toggle {
+    background: none;
+    border: 1px dashed var(--border-strong);
+    border-radius: 6px;
+    padding: 8px;
+    width: 100%;
+    font-size: 12px;
+    color: var(--ink-2);
+    cursor: pointer;
+    margin: 8px 0;
+  }
+  .advanced-toggle:hover { background: var(--secondary-bg); border-color: var(--ink-3); }
+  .advanced-section { display: none; padding-top: 6px; border-top: 1px solid var(--border); margin-top: 8px; }
+  .advanced-section.shown { display: block; }
+
+  .calc-btn {
+    width: 100%;
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .calc-btn:hover { opacity: 0.85; }
+  .calc-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: white;
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .btn-secondary:hover { background: var(--secondary-bg); }
+
+  .btn-success {
+    background: var(--green-dk);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-success:hover { opacity: 0.85; }
+
+  .reset-btn {
+    width: 100%;
+    background: transparent;
+    color: var(--ink-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    padding: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+
+  .err-msg {
+    background: var(--red-lt);
+    color: var(--red-dk);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 8px;
+    display: none;
+  }
+  .err-msg.shown { display: block; }
+
+  .success-msg {
+    background: var(--green-lt);
+    color: var(--green-dk);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-top: 8px;
+    display: none;
+  }
+  .success-msg.shown { display: block; }
+
+  /* Empty state */
+  .empty-state {
+    background: var(--secondary-bg);
+    border: 2px dashed var(--border-strong);
+    border-radius: 10px;
+    padding: 40px 30px;
+    text-align: center;
+    color: var(--ink-2);
+  }
+  .empty-state h2 {
+    font-size: 16px;
+    margin-bottom: 8px;
+    justify-content: center;
+  }
+  .empty-state p {
+    font-size: 13px;
+    margin: 0;
+    color: var(--ink-3);
+  }
+
+  /* Decision tool output */
+  .out-derived {
+    background: linear-gradient(135deg, var(--info-bg), white);
+    border: 1px solid var(--info-ink);
+  }
+  .derived-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .derived-cell {
+    background: white;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .derived-cell .label {
+    font-size: 10px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .derived-cell .val {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 2px 0 0;
+    font-family: 'SF Mono', Consolas, monospace;
+  }
+  .derived-cell .sub { font-size: 10px; color: var(--ink-3); }
+
+  .classification {
+    background: white;
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--info-ink);
+    margin-top: 8px;
+  }
+  .classification-label {
+    font-size: 11px;
+    color: var(--info-ink);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .classification-val {
+    font-size: 19px;
+    font-weight: 600;
+    margin: 4px 0 0;
+    color: var(--ink);
+  }
+  .classification-sub { font-size: 12px; color: var(--ink-2); margin: 4px 0 0; }
+
+  /* Probability bars */
+  .prob-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 70px;
+    gap: 10px;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+  }
+  .prob-row:last-child { border-bottom: none; }
+  .prob-label { color: var(--ink-2); }
+  .prob-bar-container {
+    background: var(--secondary-bg);
+    height: 18px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .prob-bar-fill {
+    height: 100%;
+    transition: width 0.4s ease-out;
+    border-radius: 4px;
+  }
+  .prob-val {
+    font-family: 'SF Mono', Consolas, monospace;
+    font-weight: 600;
+    text-align: right;
+    font-size: 13px;
+  }
+  .prob-very-high .prob-bar-fill { background: #047857; }
+  .prob-high .prob-bar-fill { background: #10B981; }
+  .prob-medium .prob-bar-fill { background: #6EE7B7; }
+  .prob-low .prob-bar-fill { background: #F59E0B; }
+  .prob-very-low .prob-bar-fill { background: #DC2626; }
+
+  .dir-bar {
+    background: var(--secondary-bg);
+    height: 24px;
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+    margin: 6px 0 4px;
+  }
+  .dir-seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .dir-bull { background: #0F6E56; }
+  .dir-doji { background: #9CA3AF; }
+  .dir-bear { background: #DC2626; }
+
+  .rec-box {
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    border-left: 3px solid;
+  }
+  .rec-safe { background: var(--green-lt); color: var(--green-dk); border-left-color: var(--green-dk); }
+  .rec-risky { background: var(--red-lt); color: var(--red-dk); border-left-color: var(--red-dk); }
+  .rec-neutral { background: var(--secondary-bg); color: var(--ink-2); border-left-color: var(--ink-3); }
+  .rec-caution { background: var(--amber-md); color: var(--amber-dk); border-left-color: var(--amber-dk); }
+  .rec-icon { font-size: 14px; margin-right: 4px; }
+  .rec-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+
+  .sample-warn {
+    background: var(--amber-md);
+    color: var(--amber-dk);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    margin: 8px 0;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .sample-good {
+    background: var(--green-lt);
+    color: var(--green-dk);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    margin: 8px 0;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .section-title {
+    font-size: 12px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    margin: 14px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .footnote { font-size: 11px; color: var(--ink-3); margin: 8px 0 0; }
+
+  /* Log section (appears in decision tool tab after calc) */
+  .log-section {
+    background: linear-gradient(135deg, #FFF9E6, white);
+    border: 1px solid var(--amber-dk);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 14px;
+  }
+  .log-section h2 { color: var(--amber-dk); }
+
+  /* Journal tables */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; padding: 8px 8px; font-weight: 600; color: var(--ink-2); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: 0.3px; background: var(--secondary-bg); }
+  th.r { text-align: right; }
+  th.c { text-align: center; }
+  td { padding: 9px 8px; border-bottom: 1px solid var(--border); }
+  td.r { text-align: right; }
+  td.c { text-align: center; }
+  tr:last-child td { border-bottom: none; }
+  tr.row-good { background: var(--green-lt); }
+  tr.row-bad { background: var(--red-lt); }
+
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+  .pill-bull { background: var(--green-dk); color: white; }
+  .pill-bear { background: var(--red-dk); color: white; }
+  .pill-doji { background: #6B7280; color: white; }
+  .pill-skip { background: var(--ink-3); color: white; }
+  .pill-range { background: #0F6E56; color: white; }
+  .pill-pending { background: var(--amber-dk); color: white; }
+  .pill-eod { background: var(--info-ink); color: white; }
+  .pill-good { background: var(--green-dk); color: white; }
+  .pill-bad { background: var(--red-dk); color: white; }
+
+  /* Stats hero */
+  .stats-hero {
+    background: var(--secondary-bg);
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin-bottom: 16px;
+  }
+  .stats-hero-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+  .stats-cell .label {
+    font-size: 11px;
+    color: var(--ink-2);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 0 0 6px;
+  }
+  .stats-cell .val {
+    font-size: 26px;
+    font-weight: 500;
+    margin: 0;
+  }
+  .stats-cell .sub { font-size: 11px; color: var(--ink-3); margin: 4px 0 0; }
+  .gain { color: var(--green-dk); }
+  .loss { color: var(--red-dk); }
+
+  /* Notes section */
+  .note-card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .note-meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+  .note-cat {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .note-Lesson { background: #DBEAFE; color: #1E40AF; }
+  .note-Observation { background: #E0E7FF; color: #3730A3; }
+  .note-Setup { background: #DCFCE7; color: #166534; }
+  .note-Mistake { background: #FEE2E2; color: #991B1B; }
+
+  /* Key */
+  .key {
+    background: var(--secondary-bg);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-top: 18px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+  }
+  .key-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 16px;
+  }
+
+  @media (max-width: 1000px) {
+    .layout { grid-template-columns: 1fr; }
+    .derived-row { grid-template-columns: repeat(2, 1fr); }
+    .stats-hero-row { grid-template-columns: repeat(2, 1fr); }
+    .prob-row { grid-template-columns: 150px 1fr 60px; font-size: 11.5px; }
+    .key-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="top-bar">
+    <h1 style="margin: 0;">CPR Decision Tool + Journal</h1>
+    <span class="sync-status sync-offline" id="sync-status">
+      <span class="sync-dot dot-offline"></span><span id="sync-text">Not connected</span>
+    </span>
+    <button class="settings-btn" id="open-settings">⚙ Settings</button>
+  </div>
+  <p class="subtitle">Predict the day · log the trade · track outcomes · learn from your patterns</p>
+  <p class="period">Stats from 2,134 days (2022-2026) · Your personal journal stored in Google Sheets</p>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="predict">🎯 Predict</button>
+    <button class="tab" data-tab="journal">📋 Journal <span class="badge" id="badge-pending" style="display:none;">0</span></button>
+    <button class="tab" data-tab="notes">📝 Notes</button>
+    <button class="tab" data-tab="stats">📊 My Stats</button>
+  </div>
+
+  <!-- ════════════ TAB: PREDICT (Decision Tool) ════════════ -->
+  <div class="tab-content active" id="tab-predict">
+    <div class="layout">
+      <div>
+        <div class="card">
+          <h2>📥 Today's Inputs</h2>
+
+          <div class="index-toggle" id="index-toggle">
+            <button class="active" data-val="NIFTY">NIFTY</button>
+            <button data-val="SENSEX">SENSEX</button>
+          </div>
+
+          <div class="input-group">
+            <h3>Previous Day OHLC</h3>
+            <div class="input-row">
+              <div><label class="input-label">PDH</label><input type="number" id="in-pdh" step="0.05" placeholder="High"></div>
+              <div><label class="input-label">PDL</label><input type="number" id="in-pdl" step="0.05" placeholder="Low"></div>
+              <div><label class="input-label">PDC</label><input type="number" id="in-pdc" step="0.05" placeholder="Close"></div>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <h3>9:15 AM Opening</h3>
+            <div><label class="input-label">9:15 Open price</label><input type="number" id="in-open" step="0.05" placeholder="Index open at 9:15"></div>
+          </div>
+
+          <button class="advanced-toggle" id="toggle-advanced">▼ Show first 5/15-min candle inputs (optional)</button>
+
+          <div class="advanced-section" id="advanced">
+            <div class="input-group">
+              <h3>First 5-min candle (9:15-9:20)</h3>
+              <div class="input-row-2">
+                <div><label class="input-label">5m Open</label><input type="number" id="in-c5o" step="0.05"></div>
+                <div><label class="input-label">5m Close</label><input type="number" id="in-c5c" step="0.05"></div>
+                <div><label class="input-label">5m High</label><input type="number" id="in-c5h" step="0.05"></div>
+                <div><label class="input-label">5m Low</label><input type="number" id="in-c5l" step="0.05"></div>
+              </div>
+            </div>
+            <div class="input-group">
+              <h3>First 15-min candle (9:15-9:30)</h3>
+              <div class="input-row-2">
+                <div><label class="input-label">15m Open</label><input type="number" id="in-c15o" step="0.05"></div>
+                <div><label class="input-label">15m Close</label><input type="number" id="in-c15c" step="0.05"></div>
+                <div><label class="input-label">15m High</label><input type="number" id="in-c15h" step="0.05"></div>
+                <div><label class="input-label">15m Low</label><input type="number" id="in-c15l" step="0.05"></div>
+              </div>
+            </div>
+          </div>
+
+          <button class="calc-btn" id="calc">📊 Calculate Probabilities</button>
+          <button class="reset-btn" id="reset">Clear all</button>
+          <div class="err-msg" id="err"></div>
+        </div>
+
+        <div class="card" style="font-size: 11.5px; color: var(--ink-2);">
+          <h3 style="margin-bottom: 8px;">📖 Daily workflow</h3>
+          <ol style="margin: 0; padding-left: 18px; line-height: 1.7;">
+            <li><strong>9:15:</strong> Enter PDH/PDL/PDC + 9:15 open → Calculate</li>
+            <li>Scroll down → set "My bias" + click <strong>Log to Journal</strong></li>
+            <li>Throughout the day → Journal tab → Add intraday updates</li>
+            <li><strong>15:30:</strong> Journal tab → Update EOD outcome with P&L</li>
+            <li>Anytime → Notes tab for learnings</li>
+            <li>Review → My Stats tab to see calibration</li>
+          </ol>
+        </div>
+      </div>
+
+      <div id="output">
+        <div class="empty-state">
+          <h2>📊 Awaiting inputs</h2>
+          <p>Enter PDH, PDL, PDC, and today's 9:15 open in the left panel.<br>Click Calculate to see what 2,134 historical days say about today's setup.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ TAB: JOURNAL ════════════ -->
+  <div class="tab-content" id="tab-journal">
+    <div class="card">
+      <h2 style="justify-content: space-between;">
+        <span>📋 Your Predictions Log</span>
+        <button class="btn-secondary" id="refresh-journal">🔄 Refresh from Sheets</button>
+      </h2>
+      <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 14px;">Predictions you've logged. Click any row to add intraday updates or close out the day with EOD outcome.</p>
+      <div id="journal-list">
+        <div class="empty-state">
+          <h2>No predictions logged yet</h2>
+          <p>Use the Predict tab → fill inputs → calculate → log to journal.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ TAB: NOTES ════════════ -->
+  <div class="tab-content" id="tab-notes">
+    <div class="card">
+      <h2>📝 Add a learning</h2>
+      <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 14px;">Capture insights, lessons, mistakes, or new setup ideas. Stored in the Notes tab of your Sheet.</p>
+
+      <div class="input-row-2" style="grid-template-columns: 140px 140px 1fr;">
+        <div><label class="input-label">Category</label>
+          <select id="note-cat">
+            <option>Lesson</option>
+            <option>Observation</option>
+            <option>Setup discovered</option>
+            <option>Mistake</option>
+          </select>
+        </div>
+        <div><label class="input-label">Date</label><input type="date" id="note-date"></div>
+        <div><label class="input-label">Tags (optional, comma-sep)</label><input type="text" id="note-tags" placeholder="e.g. gap-up, sensex"></div>
+      </div>
+      <div style="margin-top: 10px;">
+        <label class="input-label">The Note</label>
+        <textarea id="note-text" rows="4" placeholder="What did you learn / observe / want to remember?"></textarea>
+      </div>
+      <div style="margin-top: 12px;">
+        <button class="btn-success" id="save-note">💾 Save to Notes</button>
+        <span id="note-feedback" style="margin-left: 10px; font-size: 12px;"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="justify-content: space-between;">
+        <span>📚 Notes history</span>
+        <button class="btn-secondary" id="refresh-notes">🔄 Refresh</button>
+      </h2>
+      <div id="notes-list">
+        <p style="color: var(--ink-3); font-size: 13px;">Notes will appear here once loaded.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ TAB: STATS ════════════ -->
+  <div class="tab-content" id="tab-stats">
+    <div class="card">
+      <h2 style="justify-content: space-between;">
+        <span>📊 Your Performance vs Statistical Baseline</span>
+        <button class="btn-secondary" id="refresh-stats">🔄 Refresh from Sheets</button>
+      </h2>
+      <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 14px;">Compares your actual outcomes against the 2,134-day historical baseline. Requires at least a few EOD-closed predictions to be meaningful.</p>
+      <div id="stats-content">
+        <div class="empty-state">
+          <h2>No stats yet</h2>
+          <p>Click Refresh after you've logged a few predictions with EOD outcomes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ ABBREVIATION KEY ════════════ -->
+  <div class="key">
+    <h3>📖 Abbreviation Key</h3>
+    <div class="key-grid">
+      <div><strong>PDH/PDL/PDC</strong> – Previous Day High/Low/Close</div>
+      <div><strong>CPR</strong> – Central Pivot Range (BC, Pivot, TC)</div>
+      <div><strong>Pivot</strong> – (PDH + PDL + PDC) / 3</div>
+      <div><strong>BC</strong> – Bottom Central = (PDH + PDL) / 2</div>
+      <div><strong>TC</strong> – Top Central = 2 × Pivot − BC</div>
+      <div><strong>Width</strong> – TC − BC, as % of Pivot</div>
+      <div><strong>Narrow</strong> – Width &lt; 0.15% · <strong>Wide</strong> – &gt; 0.50%</div>
+      <div><strong>Gap Up/Down</strong> – Open &gt; PDH / &lt; PDL</div>
+      <div><strong>Range Day</strong> – |close vs open| &lt; 0.25%</div>
+      <div><strong>Trend Day</strong> – |close vs open| &gt; 0.50%</div>
+      <div><strong>Sustain</strong> – Price held beyond level after first touch</div>
+      <div><strong>Tool was right</strong> – Predicted bullish/bearish matched actual</div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div class="modal-bg" id="modal-settings">
+    <div class="modal">
+      <button class="modal-close" data-close-modal>×</button>
+      <h2>⚙ Settings</h2>
+      <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 14px;">Paste the Apps Script Web App URL from your Google Sheet deployment.</p>
+      <label class="input-label">Web App URL</label>
+      <input type="text" id="setting-url" placeholder="https://script.google.com/macros/s/.../exec">
+      <div style="margin-top: 14px; display: flex; gap: 8px;">
+        <button class="btn-success" id="save-url">💾 Save & Test Connection</button>
+        <button class="btn-secondary" id="clear-url">Clear</button>
+      </div>
+      <div id="setting-msg" style="margin-top: 12px; font-size: 12px;"></div>
+      <hr style="margin: 18px 0; border: none; border-top: 1px solid var(--border);">
+      <h3 style="text-transform: none; font-size: 13px; color: var(--ink);">Backup & Export</h3>
+      <p style="font-size: 12px; color: var(--ink-2);">Your data lives in Google Sheets, but you can also pull a local backup.</p>
+      <button class="btn-secondary" id="export-json">📥 Download all data as JSON</button>
+    </div>
+  </div>
+
+  <!-- LOG PREDICTION MODAL -->
+  <div class="modal-bg" id="modal-log">
+    <div class="modal">
+      <button class="modal-close" data-close-modal>×</button>
+      <h2>📝 Log this prediction to journal</h2>
+      <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 14px;">All tool inputs and probability outputs will be saved with your decisions below.</p>
+      <div style="margin-bottom: 12px;">
+        <label class="input-label">My bias for today</label>
+        <select id="log-bias">
+          <option value="">— Select —</option>
+          <option>Bullish</option>
+          <option>Bearish</option>
+          <option>Range</option>
+          <option>Skip</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label class="input-label">Strategy decision / Plan for the day</label>
+        <textarea id="log-strategy" rows="3" placeholder="e.g. Sell SENSEX 76000 CE + 75200 PE strangle, defend CE side aggressively if 75900 breaks"></textarea>
+      </div>
+      <div style="margin-top: 14px; display: flex; gap: 8px;">
+        <button class="btn-success" id="save-log">💾 Save to Journal</button>
+        <button class="btn-secondary" data-close-modal>Cancel</button>
+      </div>
+      <div id="log-msg" style="margin-top: 12px; font-size: 12px;"></div>
+    </div>
+  </div>
+
+  <!-- INTRADAY UPDATE MODAL -->
+  <div class="modal-bg" id="modal-intraday">
+    <div class="modal">
+      <button class="modal-close" data-close-modal>×</button>
+      <h2>⏱ Add intraday update</h2>
+      <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 14px;" id="intraday-context"></p>
+      <div style="margin-bottom: 12px;">
+        <label class="input-label">Time (auto)</label>
+        <input type="text" id="intraday-time" readonly>
+      </div>
+      <div style="margin-bottom: 12px;">
+        <label class="input-label">What's happening?</label>
+        <textarea id="intraday-note" rows="4" placeholder="e.g. 11:30 — PDH tested, sharp rejection, holding short bias. CE side of strangle now in profit."></textarea>
+      </div>
+      <div style="margin-top: 14px; display: flex; gap: 8px;">
+        <button class="btn-success" id="save-intraday">💾 Save update</button>
+        <button class="btn-secondary" data-close-modal>Cancel</button>
+      </div>
+      <div id="intraday-msg" style="margin-top: 12px; font-size: 12px;"></div>
+    </div>
+  </div>
+
+  <!-- EOD OUTCOME MODAL -->
+  <div class="modal-bg" id="modal-eod">
+    <div class="modal">
+      <button class="modal-close" data-close-modal>×</button>
+      <h2>🏁 Update EOD outcome</h2>
+      <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 14px;" id="eod-context"></p>
+      <div class="input-row">
+        <div><label class="input-label">Day High</label><input type="number" id="eod-high" step="0.05"></div>
+        <div><label class="input-label">Day Low</label><input type="number" id="eod-low" step="0.05"></div>
+        <div><label class="input-label">Day Close</label><input type="number" id="eod-close" step="0.05"></div>
+      </div>
+      <div style="margin-top: 12px;">
+        <label class="input-label">EOD P&L (₹) — your final number</label>
+        <input type="number" id="eod-pnl" step="0.01" placeholder="e.g. 2400 or -1850">
+      </div>
+      <div style="margin-top: 12px;">
+        <label class="input-label">What happened today (your reflection)</label>
+        <textarea id="eod-notes" rows="3" placeholder="e.g. Strangle worked despite gap up — PDH held, theta played out as expected"></textarea>
+      </div>
+      <div id="eod-preview" style="margin-top: 14px; padding: 12px; background: var(--secondary-bg); border-radius: 6px; font-size: 12px; display: none;"></div>
+      <div style="margin-top: 14px; display: flex; gap: 8px;">
+        <button class="btn-success" id="save-eod">💾 Save EOD outcome</button>
+        <button class="btn-secondary" data-close-modal>Cancel</button>
+      </div>
+      <div id="eod-msg" style="margin-top: 12px; font-size: 12px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// BASELINE DATA (from cpr_behavior_summary.json)
+// ════════════════════════════════════════════════════════════════════
+const DATA = {"NIFTY": {"days": 1067, "date_range": ["2022-01-04", "2026-04-24"], "opening_distribution": {"Gap Up": 0.313, "Gap Down": 0.2605, "Above CPR (In Range)": 0.1753, "Below CPR (In Range)": 0.1603, "Inside CPR": 0.0909}, "width_distribution": {"Normal": 0.4892, "Narrow": 0.4667, "Wide": 0.044}, "day_type_distribution": {"Range": 0.7844, "Drift": 0.1715, "Trend": 0.044}, "by_opening": {"Above CPR (In Range)": {"days": 187, "range_pct": 0.7326, "drift_pct": 0.2246, "trend_pct": 0.0428, "bullish_pct": 0.3957, "bearish_pct": 0.3529, "doji_pct": 0.2513, "avg_pct_move": -0.017, "avg_mfe_pct": 0.333, "avg_mae_pct": -0.553, "touched_pdh": 0.6952, "touched_pdl": 0.2139, "closed_above_pdh": 0.1658, "closed_below_pdl": 0.016, "came_back_in_range": 0.0, "closed_in_range": 0.8182, "tested_opposite": 0.2139, "closed_in_cpr": 0.0695, "pdh_sustain_15": 0.3095, "pdh_sustain_30": 0.3008, "pdh_sustain_close": 0.1658, "pdl_sustain_15": 0.225, "pdl_sustain_30": 0.3077, "pdl_sustain_close": 0.016, "held_above_15low": 0.2567, "held_below_15high": 0.1658}, "Below CPR (In Range)": {"days": 171, "range_pct": 0.7544, "drift_pct": 0.1871, "trend_pct": 0.0585, "bullish_pct": 0.3509, "bearish_pct": 0.4211, "doji_pct": 0.2281, "avg_pct_move": -0.011, "avg_mfe_pct": 0.504, "avg_mae_pct": -0.38, "touched_pdh": 0.2398, "touched_pdl": 0.6433, "closed_above_pdh": 0.0234, "closed_below_pdl": 0.2047, "came_back_in_range": 0.0, "closed_in_range": 0.7719, "tested_opposite": 0.2398, "closed_in_cpr": 0.0877, "pdh_sustain_15": 0.2439, "pdh_sustain_30": 0.1795, "pdh_sustain_close": 0.0234, "pdl_sustain_15": 0.3303, "pdl_sustain_30": 0.2453, "pdl_sustain_close": 0.2047, "held_above_15low": 0.1287, "held_below_15high": 0.3801}, "Gap Down": {"days": 278, "range_pct": 0.7338, "drift_pct": 0.2122, "trend_pct": 0.054, "bullish_pct": 0.4173, "bearish_pct": 0.3669, "doji_pct": 0.2158, "avg_pct_move": 0.026, "avg_mfe_pct": 0.903, "avg_mae_pct": -0.322, "touched_pdh": 0.1403, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8993, "came_back_in_range": 0.1007, "closed_in_range": 0.1007, "tested_opposite": 0.1403, "closed_in_cpr": 0.0072, "pdh_sustain_15": 0.3333, "pdh_sustain_30": 0.1795, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.5612, "pdl_sustain_30": 0.5504, "pdl_sustain_close": 0.8993, "held_above_15low": 0.0576, "held_below_15high": 0.5504}, "Gap Up": {"days": 334, "range_pct": 0.8563, "drift_pct": 0.1108, "trend_pct": 0.0329, "bullish_pct": 0.3832, "bearish_pct": 0.3413, "doji_pct": 0.2754, "avg_pct_move": 0.004, "avg_mfe_pct": 0.243, "avg_mae_pct": -0.679, "touched_pdh": 1.0, "touched_pdl": 0.0868, "closed_above_pdh": 0.8952, "closed_below_pdl": 0.0, "came_back_in_range": 0.1048, "closed_in_range": 0.1048, "tested_opposite": 0.0868, "closed_in_cpr": 0.018, "pdh_sustain_15": 0.6377, "pdh_sustain_30": 0.6557, "pdh_sustain_close": 0.8952, "pdl_sustain_15": 0.2069, "pdl_sustain_30": 0.1429, "pdl_sustain_close": 0.0, "held_above_15low": 0.4431, "held_below_15high": 0.1198}, "Inside CPR": {"days": 97, "range_pct": 0.8351, "drift_pct": 0.134, "trend_pct": 0.0309, "bullish_pct": 0.4433, "bearish_pct": 0.2784, "doji_pct": 0.2784, "avg_pct_move": 0.018, "avg_mfe_pct": 0.388, "avg_mae_pct": -0.544, "touched_pdh": 0.2887, "touched_pdl": 0.4536, "closed_above_pdh": 0.0206, "closed_below_pdl": 0.0309, "came_back_in_range": 0.0, "closed_in_range": 0.9485, "tested_opposite": 0.0, "closed_in_cpr": 0.5155, "pdh_sustain_15": 0.3462, "pdh_sustain_30": 0.32, "pdh_sustain_close": 0.0206, "pdl_sustain_15": 0.2619, "pdl_sustain_30": 0.1951, "pdl_sustain_close": 0.0309, "held_above_15low": 0.2577, "held_below_15high": 0.2062}}, "by_gapsize": {"Gap Down": {"Huge Gap (>1.5%)": {"days": 39, "range_pct": 0.5897, "drift_pct": 0.2821, "trend_pct": 0.1282, "bullish_pct": 0.5385, "bearish_pct": 0.3077, "doji_pct": 0.1538, "touched_pdh": 0.1282, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9744, "came_back_in_range": 0.0256, "closed_in_range": 0.0256, "tested_opposite": 0.1282, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.4, "pdh_sustain_30": 0.4, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.7436, "pdl_sustain_30": 0.7179, "pdl_sustain_close": 0.9744, "held_above_15low": 0.0513, "held_below_15high": 0.7179}, "Large Gap (1-1.5%)": {"days": 49, "range_pct": 0.6531, "drift_pct": 0.2653, "trend_pct": 0.0816, "bullish_pct": 0.5102, "bearish_pct": 0.3469, "doji_pct": 0.1429, "touched_pdh": 0.1429, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9184, "came_back_in_range": 0.0816, "closed_in_range": 0.0816, "tested_opposite": 0.1429, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.4286, "pdh_sustain_30": 0.2857, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.5918, "pdl_sustain_30": 0.6122, "pdl_sustain_close": 0.9184, "held_above_15low": 0.0408, "held_below_15high": 0.6531}, "Medium Gap (0.5-1%)": {"days": 107, "range_pct": 0.785, "drift_pct": 0.1589, "trend_pct": 0.0561, "bullish_pct": 0.3551, "bearish_pct": 0.4299, "doji_pct": 0.215, "touched_pdh": 0.1682, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9252, "came_back_in_range": 0.0748, "closed_in_range": 0.0748, "tested_opposite": 0.1682, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.3889, "pdh_sustain_30": 0.1667, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.5981, "pdl_sustain_30": 0.5794, "pdl_sustain_close": 0.9252, "held_above_15low": 0.0654, "held_below_15high": 0.5981}, "Micro Gap (0-0.25%)": {"days": 27, "range_pct": 0.7407, "drift_pct": 0.2593, "trend_pct": 0.0, "bullish_pct": 0.3704, "bearish_pct": 0.3704, "doji_pct": 0.2593, "touched_pdh": 0.037, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.7037, "came_back_in_range": 0.2963, "closed_in_range": 0.2963, "tested_opposite": 0.037, "closed_in_cpr": 0.0741, "pdh_sustain_15": 0.0, "pdh_sustain_30": 0.0, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.4444, "pdl_sustain_30": 0.4074, "pdl_sustain_close": 0.7037, "held_above_15low": 0.1481, "held_below_15high": 0.1852}, "Small Gap (0.25-0.5%)": {"days": 56, "range_pct": 0.8036, "drift_pct": 0.1964, "trend_pct": 0.0, "bullish_pct": 0.3929, "bearish_pct": 0.3036, "doji_pct": 0.3036, "touched_pdh": 0.1429, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.875, "came_back_in_range": 0.125, "closed_in_range": 0.125, "tested_opposite": 0.1429, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.125, "pdh_sustain_30": 0.0, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.3929, "pdl_sustain_30": 0.3929, "pdl_sustain_close": 0.875, "held_above_15low": 0.0179, "held_below_15high": 0.4286}}, "Gap Up": {"Huge Gap (>1.5%)": {"days": 35, "range_pct": 0.8286, "drift_pct": 0.1429, "trend_pct": 0.0286, "bullish_pct": 0.4857, "bearish_pct": 0.3714, "doji_pct": 0.1429, "touched_pdh": 1.0, "touched_pdl": 0.0857, "closed_above_pdh": 0.9714, "closed_below_pdl": 0.0, "came_back_in_range": 0.0286, "closed_in_range": 0.0286, "tested_opposite": 0.0857, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.7429, "pdh_sustain_30": 0.8, "pdh_sustain_close": 0.9714, "pdl_sustain_15": 0.0, "pdl_sustain_30": 0.0, "pdl_sustain_close": 0.0, "held_above_15low": 0.6286, "held_below_15high": 0.1143}, "Large Gap (1-1.5%)": {"days": 44, "range_pct": 0.8864, "drift_pct": 0.0909, "trend_pct": 0.0227, "bullish_pct": 0.3409, "bearish_pct": 0.3182, "doji_pct": 0.3409, "touched_pdh": 1.0, "touched_pdl": 0.0909, "closed_above_pdh": 0.9545, "closed_below_pdl": 0.0, "came_back_in_range": 0.0455, "closed_in_range": 0.0455, "tested_opposite": 0.0909, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.7727, "pdh_sustain_30": 0.8182, "pdh_sustain_close": 0.9545, "pdl_sustain_15": 0.0, "pdl_sustain_30": 0.0, "pdl_sustain_close": 0.0, "held_above_15low": 0.5227, "held_below_15high": 0.0227}, "Medium Gap (0.5-1%)": {"days": 132, "range_pct": 0.8864, "drift_pct": 0.0758, "trend_pct": 0.0379, "bullish_pct": 0.3485, "bearish_pct": 0.3333, "doji_pct": 0.3182, "touched_pdh": 1.0, "touched_pdl": 0.0758, "closed_above_pdh": 0.9697, "closed_below_pdl": 0.0, "came_back_in_range": 0.0303, "closed_in_range": 0.0303, "tested_opposite": 0.0758, "closed_in_cpr": 0.0076, "pdh_sustain_15": 0.6515, "pdh_sustain_30": 0.6439, "pdh_sustain_close": 0.9697, "pdl_sustain_15": 0.3, "pdl_sustain_30": 0.2, "pdl_sustain_close": 0.0, "held_above_15low": 0.5, "held_below_15high": 0.0758}, "Micro Gap (0-0.25%)": {"days": 46, "range_pct": 0.7609, "drift_pct": 0.2174, "trend_pct": 0.0217, "bullish_pct": 0.3696, "bearish_pct": 0.3696, "doji_pct": 0.2609, "touched_pdh": 1.0, "touched_pdl": 0.1087, "closed_above_pdh": 0.6522, "closed_below_pdl": 0.0, "came_back_in_range": 0.3478, "closed_in_range": 0.3478, "tested_opposite": 0.1087, "closed_in_cpr": 0.0652, "pdh_sustain_15": 0.5652, "pdh_sustain_30": 0.6304, "pdh_sustain_close": 0.6522, "pdl_sustain_15": 0.4, "pdl_sustain_30": 0.5, "pdl_sustain_close": 0.0, "held_above_15low": 0.2391, "held_below_15high": 0.3478}, "Small Gap (0.25-0.5%)": {"days": 77, "range_pct": 0.8571, "drift_pct": 0.1039, "trend_pct": 0.039, "bullish_pct": 0.4286, "bearish_pct": 0.3377, "doji_pct": 0.2338, "touched_pdh": 1.0, "touched_pdl": 0.0909, "closed_above_pdh": 0.8442, "closed_below_pdl": 0.0, "came_back_in_range": 0.1558, "closed_in_range": 0.1558, "tested_opposite": 0.0909, "closed_in_cpr": 0.026, "pdh_sustain_15": 0.5325, "pdh_sustain_30": 0.5325, "pdh_sustain_close": 0.8442, "pdl_sustain_15": 0.1429, "pdl_sustain_30": 0.0, "pdl_sustain_close": 0.0, "held_above_15low": 0.3377, "held_below_15high": 0.1169}}}, "by_width": {"Above CPR (In Range)": {"Narrow": {"days": 91, "range_pct": 0.7692, "trend_pct": 0.0549, "closed_in_range": 0.7582, "closed_above_pdh": 0.2088, "closed_below_pdl": 0.033}, "Normal": {"days": 86, "range_pct": 0.6977, "trend_pct": 0.0349, "closed_in_range": 0.8605, "closed_above_pdh": 0.1395, "closed_below_pdl": 0.0}, "Wide": {"days": 10, "range_pct": 0.7, "trend_pct": 0.0, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}}, "Below CPR (In Range)": {"Narrow": {"days": 91, "range_pct": 0.7473, "trend_pct": 0.033, "closed_in_range": 0.7363, "closed_above_pdh": 0.044, "closed_below_pdl": 0.2198}, "Normal": {"days": 75, "range_pct": 0.76, "trend_pct": 0.08, "closed_in_range": 0.8, "closed_above_pdh": 0.0, "closed_below_pdl": 0.2}, "Wide": {"days": 5, "range_pct": 0.8, "trend_pct": 0.2, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}}, "Gap Down": {"Narrow": {"days": 151, "range_pct": 0.7417, "trend_pct": 0.0464, "closed_in_range": 0.1192, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8808}, "Normal": {"days": 120, "range_pct": 0.725, "trend_pct": 0.0667, "closed_in_range": 0.075, "closed_above_pdh": 0.0, "closed_below_pdl": 0.925}, "Wide": {"days": 7, "range_pct": 0.7143, "trend_pct": 0.0, "closed_in_range": 0.1429, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8571}}, "Gap Up": {"Narrow": {"days": 144, "range_pct": 0.875, "trend_pct": 0.0417, "closed_in_range": 0.1181, "closed_above_pdh": 0.8819, "closed_below_pdl": 0.0}, "Normal": {"days": 178, "range_pct": 0.8483, "trend_pct": 0.0225, "closed_in_range": 0.1011, "closed_above_pdh": 0.8989, "closed_below_pdl": 0.0}, "Wide": {"days": 12, "range_pct": 0.75, "trend_pct": 0.0833, "closed_in_range": 0.0, "closed_above_pdh": 1.0, "closed_below_pdl": 0.0}}, "Inside CPR": {"Narrow": {"days": 21, "range_pct": 0.9048, "trend_pct": 0.0, "closed_in_range": 0.8571, "closed_above_pdh": 0.0476, "closed_below_pdl": 0.0952}, "Normal": {"days": 63, "range_pct": 0.8095, "trend_pct": 0.0317, "closed_in_range": 0.9683, "closed_above_pdh": 0.0159, "closed_below_pdl": 0.0159}, "Wide": {"days": 13, "range_pct": 0.8462, "trend_pct": 0.0769, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}}}, "by_candle5": {"Above CPR (In Range)": {"Doji": {"days": 5, "bullish_pct": 0.4, "bearish_pct": 0.6, "closed_in_range": 0.8, "closed_above_pdh": 0.2, "closed_below_pdl": 0.0}, "Green": {"days": 73, "bullish_pct": 0.4521, "bearish_pct": 0.3151, "closed_in_range": 0.7534, "closed_above_pdh": 0.2192, "closed_below_pdl": 0.0274}, "Red": {"days": 109, "bullish_pct": 0.3578, "bearish_pct": 0.367, "closed_in_range": 0.8624, "closed_above_pdh": 0.1284, "closed_below_pdl": 0.0092}}, "Below CPR (In Range)": {"Doji": {"days": 4, "bullish_pct": 0.25, "bearish_pct": 0.5, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}, "Green": {"days": 71, "bullish_pct": 0.3521, "bearish_pct": 0.4085, "closed_in_range": 0.7606, "closed_above_pdh": 0.0423, "closed_below_pdl": 0.1972}, "Red": {"days": 96, "bullish_pct": 0.3542, "bearish_pct": 0.4271, "closed_in_range": 0.7708, "closed_above_pdh": 0.0104, "closed_below_pdl": 0.2188}}, "Gap Down": {"Doji": {"days": 10, "bullish_pct": 0.4, "bearish_pct": 0.4, "closed_in_range": 0.2, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8}, "Green": {"days": 110, "bullish_pct": 0.4182, "bearish_pct": 0.3545, "closed_in_range": 0.0818, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9182}, "Red": {"days": 158, "bullish_pct": 0.4177, "bearish_pct": 0.3734, "closed_in_range": 0.1076, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8924}}, "Gap Up": {"Doji": {"days": 7, "bullish_pct": 0.5714, "bearish_pct": 0.1429, "closed_in_range": 0.0, "closed_above_pdh": 1.0, "closed_below_pdl": 0.0}, "Green": {"days": 157, "bullish_pct": 0.3885, "bearish_pct": 0.3503, "closed_in_range": 0.1083, "closed_above_pdh": 0.8917, "closed_below_pdl": 0.0}, "Red": {"days": 170, "bullish_pct": 0.3706, "bearish_pct": 0.3412, "closed_in_range": 0.1059, "closed_above_pdh": 0.8941, "closed_below_pdl": 0.0}}, "Inside CPR": {"Doji": {"days": 1, "bullish_pct": 1.0, "bearish_pct": 0.0, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}, "Green": {"days": 41, "bullish_pct": 0.3415, "bearish_pct": 0.3171, "closed_in_range": 0.9268, "closed_above_pdh": 0.0244, "closed_below_pdl": 0.0488}, "Red": {"days": 55, "bullish_pct": 0.5091, "bearish_pct": 0.2545, "closed_in_range": 0.9636, "closed_above_pdh": 0.0182, "closed_below_pdl": 0.0182}}}, "by_candle15": {"Above CPR (In Range)": {"Doji": {"days": 5, "bullish_pct": 0.4, "bearish_pct": 0.6, "closed_in_range": 0.8, "closed_above_pdh": 0.2, "closed_below_pdl": 0.0}, "Green": {"days": 87, "bullish_pct": 0.5172, "bearish_pct": 0.2759, "closed_in_range": 0.7471, "closed_above_pdh": 0.2299, "closed_below_pdl": 0.023}, "Red": {"days": 95, "bullish_pct": 0.2842, "bearish_pct": 0.4105, "closed_in_range": 0.8842, "closed_above_pdh": 0.1053, "closed_below_pdl": 0.0105}}, "Below CPR (In Range)": {"Doji": {"days": 3, "bullish_pct": 0.0, "bearish_pct": 1.0, "closed_in_range": 0.6667, "closed_above_pdh": 0.0, "closed_below_pdl": 0.3333}, "Green": {"days": 65, "bullish_pct": 0.3385, "bearish_pct": 0.4154, "closed_in_range": 0.7077, "closed_above_pdh": 0.0308, "closed_below_pdl": 0.2615}, "Red": {"days": 103, "bullish_pct": 0.3689, "bearish_pct": 0.4078, "closed_in_range": 0.8155, "closed_above_pdh": 0.0194, "closed_below_pdl": 0.165}}, "Gap Down": {"Doji": {"days": 7, "bullish_pct": 0.2857, "bearish_pct": 0.5714, "closed_in_range": 0.0, "closed_above_pdh": 0.0, "closed_below_pdl": 1.0}, "Green": {"days": 102, "bullish_pct": 0.4118, "bearish_pct": 0.3627, "closed_in_range": 0.1176, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8824}, "Red": {"days": 169, "bullish_pct": 0.426, "bearish_pct": 0.3609, "closed_in_range": 0.0947, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9053}}, "Gap Up": {"Doji": {"days": 7, "bullish_pct": 0.2857, "bearish_pct": 0.5714, "closed_in_range": 0.2857, "closed_above_pdh": 0.7143, "closed_below_pdl": 0.0}, "Green": {"days": 176, "bullish_pct": 0.4034, "bearish_pct": 0.3068, "closed_in_range": 0.0909, "closed_above_pdh": 0.9091, "closed_below_pdl": 0.0}, "Red": {"days": 151, "bullish_pct": 0.3642, "bearish_pct": 0.3709, "closed_in_range": 0.1126, "closed_above_pdh": 0.8874, "closed_below_pdl": 0.0}}, "Inside CPR": {"Doji": {"days": 3, "bullish_pct": 0.0, "bearish_pct": 0.6667, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}, "Green": {"days": 38, "bullish_pct": 0.3947, "bearish_pct": 0.2368, "closed_in_range": 0.9474, "closed_above_pdh": 0.0263, "closed_below_pdl": 0.0263}, "Red": {"days": 56, "bullish_pct": 0.5, "bearish_pct": 0.2857, "closed_in_range": 0.9464, "closed_above_pdh": 0.0179, "closed_below_pdl": 0.0357}}}}, "SENSEX": {"days": 1067, "date_range": ["2022-01-04", "2026-04-24"], "opening_distribution": {"Gap Up": 0.3065, "Gap Down": 0.2512, "Above CPR (In Range)": 0.1743, "Below CPR (In Range)": 0.1678, "Inside CPR": 0.1003}, "width_distribution": {"Narrow": 0.4799, "Normal": 0.4733, "Wide": 0.0469}, "day_type_distribution": {"Range": 0.7751, "Drift": 0.1799, "Trend": 0.045}, "by_opening": {"Above CPR (In Range)": {"days": 186, "range_pct": 0.7312, "drift_pct": 0.2366, "trend_pct": 0.0323, "bullish_pct": 0.4301, "bearish_pct": 0.3602, "doji_pct": 0.2097, "avg_pct_move": -0.004, "avg_mfe_pct": 0.336, "avg_mae_pct": -0.532, "touched_pdh": 0.672, "touched_pdl": 0.2312, "closed_above_pdh": 0.1989, "closed_below_pdl": 0.0108, "came_back_in_range": 0.0, "closed_in_range": 0.7903, "tested_opposite": 0.2312, "closed_in_cpr": 0.1022, "pdh_sustain_15": 0.3471, "pdh_sustain_30": 0.3675, "pdh_sustain_close": 0.1989, "pdl_sustain_15": 0.3023, "pdl_sustain_30": 0.2927, "pdl_sustain_close": 0.0108, "held_above_15low": 0.2796, "held_below_15high": 0.1613}, "Below CPR (In Range)": {"days": 179, "range_pct": 0.7486, "drift_pct": 0.1955, "trend_pct": 0.0559, "bullish_pct": 0.3352, "bearish_pct": 0.419, "doji_pct": 0.2458, "avg_pct_move": -0.01, "avg_mfe_pct": 0.541, "avg_mae_pct": -0.391, "touched_pdh": 0.2067, "touched_pdl": 0.7095, "closed_above_pdh": 0.0223, "closed_below_pdl": 0.2235, "came_back_in_range": 0.0, "closed_in_range": 0.7542, "tested_opposite": 0.2067, "closed_in_cpr": 0.067, "pdh_sustain_15": 0.2432, "pdh_sustain_30": 0.1429, "pdh_sustain_close": 0.0223, "pdl_sustain_15": 0.3095, "pdl_sustain_30": 0.314, "pdl_sustain_close": 0.2235, "held_above_15low": 0.1844, "held_below_15high": 0.4022}, "Gap Down": {"days": 268, "range_pct": 0.7351, "drift_pct": 0.209, "trend_pct": 0.056, "bullish_pct": 0.444, "bearish_pct": 0.3321, "doji_pct": 0.2239, "avg_pct_move": 0.033, "avg_mfe_pct": 0.89, "avg_mae_pct": -0.324, "touched_pdh": 0.1231, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8918, "came_back_in_range": 0.1082, "closed_in_range": 0.1082, "tested_opposite": 0.1231, "closed_in_cpr": 0.0075, "pdh_sustain_15": 0.2424, "pdh_sustain_30": 0.0909, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.5373, "pdl_sustain_30": 0.5522, "pdl_sustain_close": 0.8918, "held_above_15low": 0.0634, "held_below_15high": 0.5746}, "Gap Up": {"days": 327, "range_pct": 0.8349, "drift_pct": 0.1223, "trend_pct": 0.0428, "bullish_pct": 0.3761, "bearish_pct": 0.3547, "doji_pct": 0.2691, "avg_pct_move": 0.001, "avg_mfe_pct": 0.263, "avg_mae_pct": -0.705, "touched_pdh": 1.0, "touched_pdl": 0.0948, "closed_above_pdh": 0.8777, "closed_below_pdl": 0.0061, "came_back_in_range": 0.1162, "closed_in_range": 0.1162, "tested_opposite": 0.0948, "closed_in_cpr": 0.0122, "pdh_sustain_15": 0.5749, "pdh_sustain_30": 0.5902, "pdh_sustain_close": 0.8777, "pdl_sustain_15": 0.2258, "pdl_sustain_30": 0.129, "pdl_sustain_close": 0.0061, "held_above_15low": 0.4587, "held_below_15high": 0.1162}, "Inside CPR": {"days": 107, "range_pct": 0.8131, "drift_pct": 0.1589, "trend_pct": 0.028, "bullish_pct": 0.4112, "bearish_pct": 0.3551, "doji_pct": 0.2336, "avg_pct_move": 0.008, "avg_mfe_pct": 0.391, "avg_mae_pct": -0.511, "touched_pdh": 0.3645, "touched_pdl": 0.4112, "closed_above_pdh": 0.0187, "closed_below_pdl": 0.028, "came_back_in_range": 0.0, "closed_in_range": 0.9533, "tested_opposite": 0.0, "closed_in_cpr": 0.486, "pdh_sustain_15": 0.2821, "pdh_sustain_30": 0.2368, "pdh_sustain_close": 0.0187, "pdl_sustain_15": 0.2273, "pdl_sustain_30": 0.186, "pdl_sustain_close": 0.028, "held_above_15low": 0.2336, "held_below_15high": 0.2617}}, "by_gapsize": {"Gap Down": {"Huge Gap (>1.5%)": {"days": 35, "range_pct": 0.4857, "drift_pct": 0.3714, "trend_pct": 0.1429, "bullish_pct": 0.6, "bearish_pct": 0.2286, "doji_pct": 0.1714, "touched_pdh": 0.1429, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 1.0, "came_back_in_range": 0.0, "closed_in_range": 0.0, "tested_opposite": 0.1429, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.4, "pdh_sustain_30": 0.2, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.7143, "pdl_sustain_30": 0.7143, "pdl_sustain_close": 1.0, "held_above_15low": 0.0571, "held_below_15high": 0.6857}, "Large Gap (1-1.5%)": {"days": 51, "range_pct": 0.7451, "drift_pct": 0.2157, "trend_pct": 0.0392, "bullish_pct": 0.4902, "bearish_pct": 0.3333, "doji_pct": 0.1765, "touched_pdh": 0.098, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9412, "came_back_in_range": 0.0588, "closed_in_range": 0.0588, "tested_opposite": 0.098, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.2, "pdh_sustain_30": 0.2, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.7059, "pdl_sustain_30": 0.7059, "pdl_sustain_close": 0.9412, "held_above_15low": 0.0588, "held_below_15high": 0.6863}, "Medium Gap (0.5-1%)": {"days": 100, "range_pct": 0.75, "drift_pct": 0.19, "trend_pct": 0.06, "bullish_pct": 0.41, "bearish_pct": 0.42, "doji_pct": 0.17, "touched_pdh": 0.14, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9, "came_back_in_range": 0.1, "closed_in_range": 0.1, "tested_opposite": 0.14, "closed_in_cpr": 0.01, "pdh_sustain_15": 0.1429, "pdh_sustain_30": 0.0714, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.51, "pdl_sustain_30": 0.57, "pdl_sustain_close": 0.9, "held_above_15low": 0.07, "held_below_15high": 0.61}, "Micro Gap (0-0.25%)": {"days": 21, "range_pct": 0.8571, "drift_pct": 0.1429, "trend_pct": 0.0, "bullish_pct": 0.2857, "bearish_pct": 0.381, "doji_pct": 0.3333, "touched_pdh": 0.0952, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.7619, "came_back_in_range": 0.2381, "closed_in_range": 0.2381, "tested_opposite": 0.0952, "closed_in_cpr": 0.0476, "pdh_sustain_15": 0.0, "pdh_sustain_30": 0.0, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.3333, "pdl_sustain_30": 0.2857, "pdl_sustain_close": 0.7619, "held_above_15low": 0.1905, "held_below_15high": 0.3333}, "Small Gap (0.25-0.5%)": {"days": 61, "range_pct": 0.8033, "drift_pct": 0.1639, "trend_pct": 0.0328, "bullish_pct": 0.4262, "bearish_pct": 0.2295, "doji_pct": 0.3443, "touched_pdh": 0.1148, "touched_pdl": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8197, "came_back_in_range": 0.1803, "closed_in_range": 0.1803, "tested_opposite": 0.1148, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.4286, "pdh_sustain_30": 0.0, "pdh_sustain_close": 0.0, "pdl_sustain_15": 0.4098, "pdl_sustain_30": 0.3934, "pdl_sustain_close": 0.8197, "held_above_15low": 0.0164, "held_below_15high": 0.4426}}, "Gap Up": {"Huge Gap (>1.5%)": {"days": 38, "range_pct": 0.7895, "drift_pct": 0.1579, "trend_pct": 0.0526, "bullish_pct": 0.4474, "bearish_pct": 0.3421, "doji_pct": 0.2105, "touched_pdh": 1.0, "touched_pdl": 0.0789, "closed_above_pdh": 0.9737, "closed_below_pdl": 0.0, "came_back_in_range": 0.0263, "closed_in_range": 0.0263, "tested_opposite": 0.0789, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.7895, "pdh_sustain_30": 0.7895, "pdh_sustain_close": 0.9737, "pdl_sustain_15": 0.3333, "pdl_sustain_30": 0.3333, "pdl_sustain_close": 0.0, "held_above_15low": 0.6316, "held_below_15high": 0.1053}, "Large Gap (1-1.5%)": {"days": 42, "range_pct": 0.8095, "drift_pct": 0.1429, "trend_pct": 0.0476, "bullish_pct": 0.4524, "bearish_pct": 0.4048, "doji_pct": 0.1429, "touched_pdh": 1.0, "touched_pdl": 0.0952, "closed_above_pdh": 0.9762, "closed_below_pdl": 0.0, "came_back_in_range": 0.0238, "closed_in_range": 0.0238, "tested_opposite": 0.0952, "closed_in_cpr": 0.0238, "pdh_sustain_15": 0.7857, "pdh_sustain_30": 0.8095, "pdh_sustain_close": 0.9762, "pdl_sustain_15": 0.25, "pdl_sustain_30": 0.0, "pdl_sustain_close": 0.0, "held_above_15low": 0.6429, "held_below_15high": 0.0476}, "Medium Gap (0.5-1%)": {"days": 127, "range_pct": 0.8898, "drift_pct": 0.063, "trend_pct": 0.0472, "bullish_pct": 0.3543, "bearish_pct": 0.2992, "doji_pct": 0.3465, "touched_pdh": 1.0, "touched_pdl": 0.0945, "closed_above_pdh": 0.9449, "closed_below_pdl": 0.0, "came_back_in_range": 0.0551, "closed_in_range": 0.0551, "tested_opposite": 0.0945, "closed_in_cpr": 0.0, "pdh_sustain_15": 0.5433, "pdh_sustain_30": 0.5591, "pdh_sustain_close": 0.9449, "pdl_sustain_15": 0.1667, "pdl_sustain_30": 0.1667, "pdl_sustain_close": 0.0, "held_above_15low": 0.5197, "held_below_15high": 0.0787}, "Micro Gap (0-0.25%)": {"days": 44, "range_pct": 0.7955, "drift_pct": 0.1818, "trend_pct": 0.0227, "bullish_pct": 0.3409, "bearish_pct": 0.3409, "doji_pct": 0.3182, "touched_pdh": 1.0, "touched_pdl": 0.0455, "closed_above_pdh": 0.6591, "closed_below_pdl": 0.0227, "came_back_in_range": 0.3182, "closed_in_range": 0.3182, "tested_opposite": 0.0455, "closed_in_cpr": 0.0227, "pdh_sustain_15": 0.4773, "pdh_sustain_30": 0.5455, "pdh_sustain_close": 0.6591, "pdl_sustain_15": 0.5, "pdl_sustain_30": 0.5, "pdl_sustain_close": 0.0227, "held_above_15low": 0.2727, "held_below_15high": 0.2273}, "Small Gap (0.25-0.5%)": {"days": 76, "range_pct": 0.8026, "drift_pct": 0.1579, "trend_pct": 0.0395, "bullish_pct": 0.3553, "bearish_pct": 0.4342, "doji_pct": 0.2105, "touched_pdh": 1.0, "touched_pdl": 0.1316, "closed_above_pdh": 0.7895, "closed_below_pdl": 0.0132, "came_back_in_range": 0.1974, "closed_in_range": 0.1974, "tested_opposite": 0.1316, "closed_in_cpr": 0.0263, "pdh_sustain_15": 0.4605, "pdh_sustain_30": 0.4474, "pdh_sustain_close": 0.7895, "pdl_sustain_15": 0.2, "pdl_sustain_30": 0.0, "pdl_sustain_close": 0.0132, "held_above_15low": 0.2763, "held_below_15high": 0.1579}}}, "by_width": {"Above CPR (In Range)": {"Narrow": {"days": 98, "range_pct": 0.7347, "trend_pct": 0.0306, "closed_in_range": 0.7449, "closed_above_pdh": 0.2347, "closed_below_pdl": 0.0204}, "Normal": {"days": 78, "range_pct": 0.7308, "trend_pct": 0.0385, "closed_in_range": 0.8205, "closed_above_pdh": 0.1795, "closed_below_pdl": 0.0}, "Wide": {"days": 10, "range_pct": 0.7, "trend_pct": 0.0, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}}, "Below CPR (In Range)": {"Narrow": {"days": 99, "range_pct": 0.7677, "trend_pct": 0.0202, "closed_in_range": 0.7576, "closed_above_pdh": 0.0404, "closed_below_pdl": 0.202}, "Normal": {"days": 69, "range_pct": 0.7391, "trend_pct": 0.1014, "closed_in_range": 0.7101, "closed_above_pdh": 0.0, "closed_below_pdl": 0.2899}, "Wide": {"days": 11, "range_pct": 0.6364, "trend_pct": 0.0909, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}}, "Gap Down": {"Narrow": {"days": 149, "range_pct": 0.7584, "trend_pct": 0.0403, "closed_in_range": 0.1007, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8993}, "Normal": {"days": 115, "range_pct": 0.6957, "trend_pct": 0.0783, "closed_in_range": 0.1217, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8783}, "Wide": {"days": 4, "range_pct": 1.0, "trend_pct": 0.0, "closed_in_range": 0.0, "closed_above_pdh": 0.0, "closed_below_pdl": 1.0}}, "Gap Up": {"Narrow": {"days": 142, "range_pct": 0.831, "trend_pct": 0.0493, "closed_in_range": 0.1338, "closed_above_pdh": 0.8592, "closed_below_pdl": 0.007}, "Normal": {"days": 172, "range_pct": 0.8488, "trend_pct": 0.0349, "closed_in_range": 0.1047, "closed_above_pdh": 0.8895, "closed_below_pdl": 0.0058}, "Wide": {"days": 13, "range_pct": 0.6923, "trend_pct": 0.0769, "closed_in_range": 0.0769, "closed_above_pdh": 0.9231, "closed_below_pdl": 0.0}}, "Inside CPR": {"Narrow": {"days": 24, "range_pct": 0.875, "trend_pct": 0.0417, "closed_in_range": 0.8333, "closed_above_pdh": 0.0417, "closed_below_pdl": 0.125}, "Normal": {"days": 71, "range_pct": 0.7887, "trend_pct": 0.0282, "closed_in_range": 0.9859, "closed_above_pdh": 0.0141, "closed_below_pdl": 0.0}, "Wide": {"days": 12, "range_pct": 0.8333, "trend_pct": 0.0, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}}}, "by_candle5": {"Above CPR (In Range)": {"Doji": {"days": 4, "bullish_pct": 0.5, "bearish_pct": 0.5, "closed_in_range": 0.75, "closed_above_pdh": 0.25, "closed_below_pdl": 0.0}, "Green": {"days": 91, "bullish_pct": 0.5165, "bearish_pct": 0.3407, "closed_in_range": 0.7473, "closed_above_pdh": 0.2418, "closed_below_pdl": 0.011}, "Red": {"days": 91, "bullish_pct": 0.3407, "bearish_pct": 0.3736, "closed_in_range": 0.8352, "closed_above_pdh": 0.1538, "closed_below_pdl": 0.011}}, "Below CPR (In Range)": {"Doji": {"days": 6, "bullish_pct": 0.3333, "bearish_pct": 0.3333, "closed_in_range": 0.8333, "closed_above_pdh": 0.0, "closed_below_pdl": 0.1667}, "Green": {"days": 75, "bullish_pct": 0.3333, "bearish_pct": 0.44, "closed_in_range": 0.72, "closed_above_pdh": 0.04, "closed_below_pdl": 0.24}, "Red": {"days": 98, "bullish_pct": 0.3367, "bearish_pct": 0.4082, "closed_in_range": 0.7755, "closed_above_pdh": 0.0102, "closed_below_pdl": 0.2143}}, "Gap Down": {"Doji": {"days": 3, "bullish_pct": 0.3333, "bearish_pct": 0.6667, "closed_in_range": 0.0, "closed_above_pdh": 0.0, "closed_below_pdl": 1.0}, "Green": {"days": 109, "bullish_pct": 0.4862, "bearish_pct": 0.3028, "closed_in_range": 0.1468, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8532}, "Red": {"days": 156, "bullish_pct": 0.4167, "bearish_pct": 0.3462, "closed_in_range": 0.0833, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9167}}, "Gap Up": {"Doji": {"days": 7, "bullish_pct": 0.4286, "bearish_pct": 0.5714, "closed_in_range": 0.4286, "closed_above_pdh": 0.5714, "closed_below_pdl": 0.0}, "Green": {"days": 166, "bullish_pct": 0.3735, "bearish_pct": 0.3735, "closed_in_range": 0.1024, "closed_above_pdh": 0.8916, "closed_below_pdl": 0.006}, "Red": {"days": 154, "bullish_pct": 0.3766, "bearish_pct": 0.3247, "closed_in_range": 0.1169, "closed_above_pdh": 0.8766, "closed_below_pdl": 0.0065}}, "Inside CPR": {"Doji": {"days": 3, "bullish_pct": 0.6667, "bearish_pct": 0.0, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}, "Green": {"days": 52, "bullish_pct": 0.4423, "bearish_pct": 0.3077, "closed_in_range": 0.9423, "closed_above_pdh": 0.0385, "closed_below_pdl": 0.0192}, "Red": {"days": 52, "bullish_pct": 0.3654, "bearish_pct": 0.4231, "closed_in_range": 0.9615, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0385}}}, "by_candle15": {"Above CPR (In Range)": {"Doji": {"days": 3, "bullish_pct": 0.0, "bearish_pct": 1.0, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}, "Green": {"days": 99, "bullish_pct": 0.5253, "bearish_pct": 0.2929, "closed_in_range": 0.7475, "closed_above_pdh": 0.2424, "closed_below_pdl": 0.0101}, "Red": {"days": 84, "bullish_pct": 0.3333, "bearish_pct": 0.4167, "closed_in_range": 0.8333, "closed_above_pdh": 0.1548, "closed_below_pdl": 0.0119}}, "Below CPR (In Range)": {"Doji": {"days": 3, "bullish_pct": 0.0, "bearish_pct": 0.0, "closed_in_range": 1.0, "closed_above_pdh": 0.0, "closed_below_pdl": 0.0}, "Green": {"days": 70, "bullish_pct": 0.3857, "bearish_pct": 0.4286, "closed_in_range": 0.7429, "closed_above_pdh": 0.0, "closed_below_pdl": 0.2571}, "Red": {"days": 106, "bullish_pct": 0.3113, "bearish_pct": 0.4245, "closed_in_range": 0.7547, "closed_above_pdh": 0.0377, "closed_below_pdl": 0.2075}}, "Gap Down": {"Doji": {"days": 6, "bullish_pct": 0.0, "bearish_pct": 0.5, "closed_in_range": 0.0, "closed_above_pdh": 0.0, "closed_below_pdl": 1.0}, "Green": {"days": 94, "bullish_pct": 0.4787, "bearish_pct": 0.3085, "closed_in_range": 0.1489, "closed_above_pdh": 0.0, "closed_below_pdl": 0.8511}, "Red": {"days": 168, "bullish_pct": 0.4405, "bearish_pct": 0.3393, "closed_in_range": 0.0893, "closed_above_pdh": 0.0, "closed_below_pdl": 0.9107}}, "Gap Up": {"Doji": {"days": 2, "bullish_pct": 0.5, "bearish_pct": 0.0, "closed_in_range": 0.0, "closed_above_pdh": 1.0, "closed_below_pdl": 0.0}, "Green": {"days": 186, "bullish_pct": 0.414, "bearish_pct": 0.3387, "closed_in_range": 0.1075, "closed_above_pdh": 0.8871, "closed_below_pdl": 0.0054}, "Red": {"days": 139, "bullish_pct": 0.3237, "bearish_pct": 0.3813, "closed_in_range": 0.1295, "closed_above_pdh": 0.8633, "closed_below_pdl": 0.0072}}, "Inside CPR": {"Green": {"days": 51, "bullish_pct": 0.4902, "bearish_pct": 0.2745, "closed_in_range": 0.9608, "closed_above_pdh": 0.0196, "closed_below_pdl": 0.0196}, "Red": {"days": 56, "bullish_pct": 0.3393, "bearish_pct": 0.4286, "closed_in_range": 0.9464, "closed_above_pdh": 0.0179, "closed_below_pdl": 0.0357}}}}};
+
+// ════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════
+let currentIndex = 'NIFTY';
+let webAppUrl = localStorage.getItem('cpr_url') || '';
+let lastContext = null; // last calc result, used for logging
+let cachedData = null;  // last fetched sheets data
+let currentPredictionForUpdate = null; // for intraday/EOD modals
+
+// ════════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════════
+const $ = (id) => document.getElementById(id);
+const pct = (v) => (v === null || v === undefined || isNaN(v)) ? '—' : (v * 100).toFixed(1) + '%';
+const fmt = (v, d=2) => (v === null || v === undefined || isNaN(v)) ? '—' : Number(v).toFixed(d);
+const fmtPnl = (v) => {
+  if (v === null || v === undefined || v === '' || isNaN(v)) return '—';
+  const n = Number(v);
+  return (n >= 0 ? '+' : '') + '₹' + n.toLocaleString('en-IN', {maximumFractionDigits: 0});
+};
+function probClass(v) {
+  if (v === null || v === undefined || isNaN(v)) return 'prob-very-low';
+  if (v >= 0.80) return 'prob-very-high';
+  if (v >= 0.60) return 'prob-high';
+  if (v >= 0.35) return 'prob-medium';
+  if (v >= 0.15) return 'prob-low';
+  return 'prob-very-low';
+}
+
+// ════════════════════════════════════════════════════════════════════
+// CLASSIFICATION (same as Decision Tool)
+// ════════════════════════════════════════════════════════════════════
+function classifyOpening(open, pdh, pdl, bc, tc) {
+  if (open > pdh) return 'Gap Up';
+  if (open < pdl) return 'Gap Down';
+  if (open > tc) return 'Above CPR (In Range)';
+  if (open < bc) return 'Below CPR (In Range)';
+  return 'Inside CPR';
+}
+function classifyWidth(widthPct) {
+  if (widthPct < 0.15) return 'Narrow';
+  if (widthPct > 0.50) return 'Wide';
+  return 'Normal';
+}
+function classifyGapSize(gapPct) {
+  const a = Math.abs(gapPct);
+  if (a < 0.25) return 'Micro Gap (0-0.25%)';
+  if (a < 0.50) return 'Small Gap (0.25-0.5%)';
+  if (a < 1.00) return 'Medium Gap (0.5-1%)';
+  if (a < 1.50) return 'Large Gap (1-1.5%)';
+  return 'Huge Gap (>1.5%)';
+}
+function classifyDayType(pctMove) {
+  const a = Math.abs(pctMove);
+  if (a > 0.50) return 'Trend';
+  if (a > 0.25) return 'Drift';
+  return 'Range';
+}
+function candleDir(open, close) {
+  if (close > open) return 'Green';
+  if (close < open) return 'Red';
+  return 'Doji';
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SHEETS API (via Apps Script Web App)
+// ════════════════════════════════════════════════════════════════════
+async function sheetsCall(action, data = {}) {
+  if (!webAppUrl) throw new Error('Web App URL not set. Open Settings.');
+  const body = JSON.stringify({ action, data });
+  const resp = await fetch(webAppUrl, {
+    method: 'POST',
+    body: body,
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+  });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.json();
+}
+
+async function pingSheets() {
+  try {
+    const r = await sheetsCall('ping');
+    if (r.ok) {
+      $('sync-status').className = 'sync-status sync-online';
+      $('sync-status').querySelector('.sync-dot').className = 'sync-dot dot-online';
+      $('sync-text').textContent = 'Connected to Sheets';
+      return true;
+    }
+    throw new Error(r.error || 'unknown');
+  } catch (err) {
+    $('sync-status').className = 'sync-status sync-offline';
+    $('sync-status').querySelector('.sync-dot').className = 'sync-dot dot-offline';
+    $('sync-text').textContent = 'Offline';
+    return false;
+  }
+}
+
+function setSyncPending(text) {
+  $('sync-status').className = 'sync-status sync-pending';
+  $('sync-status').querySelector('.sync-dot').className = 'sync-dot dot-pending';
+  $('sync-text').textContent = text;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// DECISION TOOL CALC + RENDER
+// ════════════════════════════════════════════════════════════════════
+function compute() {
+  $('err').classList.remove('shown');
+  const pdh = parseFloat($('in-pdh').value);
+  const pdl = parseFloat($('in-pdl').value);
+  const pdc = parseFloat($('in-pdc').value);
+  const open = parseFloat($('in-open').value);
+
+  if (!pdh || !pdl || !pdc || !open) return showError('Please enter PDH, PDL, PDC, and 9:15 Open.');
+  if (pdh <= pdl) return showError('PDH must be greater than PDL.');
+  if (pdc < pdl || pdc > pdh) return showError(`PDC (${pdc}) should be between PDL and PDH.`);
+  if (Math.abs((open - pdc) / pdc) > 0.05) return showError(`Open is ${((open-pdc)/pdc*100).toFixed(1)}% from PDC — >5% gap, check inputs.`);
+
+  const pivot = (pdh + pdl + pdc) / 3;
+  const bcRaw = (pdh + pdl) / 2;
+  const tcRaw = 2 * pivot - bcRaw;
+  const bc = Math.min(bcRaw, tcRaw);
+  const tc = Math.max(bcRaw, tcRaw);
+  const cprWidth = tc - bc;
+  const cprWidthPct = (cprWidth / pivot) * 100;
+  const widthTag = classifyWidth(cprWidthPct);
+  const opening = classifyOpening(open, pdh, pdl, bc, tc);
+  const gapPct = ((open - pdc) / pdc) * 100;
+  const gapSize = (opening === 'Gap Up' || opening === 'Gap Down') ? classifyGapSize(gapPct) : null;
+  const distFromPivot = ((open - pivot) / pivot) * 100;
+  const distFromPdh = ((open - pdh) / pdh) * 100;
+  const distFromPdl = ((open - pdl) / pdl) * 100;
+
+  const c5o = parseFloat($('in-c5o').value), c5c = parseFloat($('in-c5c').value);
+  const c5h = parseFloat($('in-c5h').value), c5l = parseFloat($('in-c5l').value);
+  const c15o = parseFloat($('in-c15o').value), c15c = parseFloat($('in-c15c').value);
+  const c15h = parseFloat($('in-c15h').value), c15l = parseFloat($('in-c15l').value);
+  const has5 = !isNaN(c5o) && !isNaN(c5c);
+  const has15 = !isNaN(c15o) && !isNaN(c15c);
+  const dir5 = has5 ? candleDir(c5o, c5c) : null;
+  const dir15 = has15 ? candleDir(c15o, c15c) : null;
+
+  const idxData = DATA[currentIndex];
+  const baseProfile = idxData.by_opening[opening];
+  const gapProfile = gapSize && idxData.by_gapsize[opening] ? idxData.by_gapsize[opening][gapSize] : null;
+  const candle5Profile = dir5 && idxData.by_candle5[opening] ? idxData.by_candle5[opening][dir5] : null;
+  const candle15Profile = dir15 && idxData.by_candle15[opening] ? idxData.by_candle15[opening][dir15] : null;
+
+  lastContext = {
+    pdh, pdl, pdc, open, pivot, bc, tc, cprWidth, cprWidthPct, widthTag,
+    opening, gapPct, gapSize, distFromPivot, distFromPdh, distFromPdl,
+    has5, has15, dir5, dir15, c5h, c5l, c15h, c15l,
+    baseProfile, gapProfile, candle5Profile, candle15Profile,
+    index: currentIndex
+  };
+
+  renderOutput(lastContext);
+}
+
+function showError(msg) { const el = $('err'); el.textContent = '⚠ ' + msg; el.classList.add('shown'); }
+
+function renderOutput(ctx) {
+  const out = $('output');
+  let mainProfile = ctx.baseProfile;
+  let mainProfileLabel = ctx.opening;
+  let mainProfileDays = ctx.baseProfile.days;
+  if (ctx.gapProfile && ctx.gapProfile.days >= 20) {
+    mainProfile = ctx.gapProfile;
+    mainProfileLabel = `${ctx.opening} · ${ctx.gapSize}`;
+    mainProfileDays = ctx.gapProfile.days;
+  } else if (ctx.gapProfile) {
+    mainProfileLabel = `${ctx.opening} (base sample; ${ctx.gapSize} has only ${ctx.gapProfile.days} days)`;
+  }
+
+  let html = '';
+  html += `<div class="card out-derived">
+    <h2>📐 Derived levels</h2>
+    <div class="derived-row">
+      <div class="derived-cell"><div class="label">Pivot</div><div class="val">${fmt(ctx.pivot)}</div></div>
+      <div class="derived-cell"><div class="label">BC</div><div class="val">${fmt(ctx.bc)}</div></div>
+      <div class="derived-cell"><div class="label">TC</div><div class="val">${fmt(ctx.tc)}</div></div>
+      <div class="derived-cell"><div class="label">CPR Width</div><div class="val">${fmt(ctx.cprWidth)}</div><div class="sub">${ctx.cprWidthPct.toFixed(3)}% (${ctx.widthTag})</div></div>
+    </div>
+    <div class="derived-row" style="grid-template-columns: repeat(3, 1fr);">
+      <div class="derived-cell"><div class="label">Open dist from Pivot</div><div class="val">${ctx.distFromPivot >= 0 ? '+' : ''}${fmt(ctx.distFromPivot, 3)}%</div></div>
+      <div class="derived-cell"><div class="label">Open dist from PDH</div><div class="val">${ctx.distFromPdh >= 0 ? '+' : ''}${fmt(ctx.distFromPdh, 3)}%</div></div>
+      <div class="derived-cell"><div class="label">Open dist from PDL</div><div class="val">${ctx.distFromPdl >= 0 ? '+' : ''}${fmt(ctx.distFromPdl, 3)}%</div></div>
+    </div>
+    <div class="classification">
+      <div class="classification-label">Today's Setup</div>
+      <div class="classification-val">${ctx.opening}${ctx.gapSize ? ' · ' + ctx.gapSize : ''} · ${ctx.widthTag} CPR</div>
+      <div class="classification-sub">${ctx.gapPct !== 0 ? `Gap = ${ctx.gapPct >= 0 ? '+' : ''}${fmt(ctx.gapPct, 2)}% from PDC` : 'No gap'}${ctx.dir5 ? ` · 5-min: ${ctx.dir5}` : ''}${ctx.dir15 ? ` · 15-min: ${ctx.dir15}` : ''}</div>
+    </div>
+  </div>`;
+
+  if (mainProfileDays < 20) html += `<div class="card"><div class="sample-warn">⚠ <span><strong>Small sample:</strong> Only ${mainProfileDays} matching days. Treat probabilities as hints.</span></div></div>`;
+  else if (mainProfileDays < 50) html += `<div class="card" style="padding: 12px 18px;"><div class="sample-warn">ℹ <span><strong>Moderate sample:</strong> ${mainProfileDays} matching days.</span></div></div>`;
+  else html += `<div class="card" style="padding: 12px 18px;"><div class="sample-good">✓ <span><strong>Strong sample:</strong> ${mainProfileDays} matching days. High confidence.</span></div></div>`;
+
+  const r = mainProfile.range_pct !== undefined ? mainProfile.range_pct : ctx.baseProfile.range_pct;
+  const dr = mainProfile.drift_pct !== undefined ? mainProfile.drift_pct : ctx.baseProfile.drift_pct;
+  const tr = mainProfile.trend_pct !== undefined ? mainProfile.trend_pct : ctx.baseProfile.trend_pct;
+  const bull = mainProfile.bullish_pct !== undefined ? mainProfile.bullish_pct : ctx.baseProfile.bullish_pct;
+  const bear = mainProfile.bearish_pct !== undefined ? mainProfile.bearish_pct : ctx.baseProfile.bearish_pct;
+  const doji = mainProfile.doji_pct !== undefined ? mainProfile.doji_pct : ctx.baseProfile.doji_pct;
+
+  html += `<div class="card"><h2>📊 Day Behavior Probabilities</h2>
+    <p class="footnote" style="margin-bottom:12px;">Source: ${ctx.index} · ${mainProfileLabel} (n=${mainProfileDays})</p>
+    <div class="section-title">Day Type</div>
+    <div class="dir-bar">
+      <div class="dir-seg dir-bull" style="flex: ${r}">${pct(r)} Range</div>
+      <div class="dir-seg dir-doji" style="flex: ${dr}">${pct(dr)} Drift</div>
+      <div class="dir-seg dir-bear" style="flex: ${tr}">${pct(tr)} Trend</div>
+    </div>
+    <div class="section-title" style="margin-top:14px;">Closing Direction</div>
+    <div class="dir-bar">
+      <div class="dir-seg dir-bull" style="flex: ${bull}">${pct(bull)} Bullish</div>
+      <div class="dir-seg dir-doji" style="flex: ${doji}">${pct(doji)} Doji</div>
+      <div class="dir-seg dir-bear" style="flex: ${bear}">${pct(bear)} Bearish</div>
+    </div>
+  </div>`;
+
+  const get = (k) => mainProfile[k] !== undefined ? mainProfile[k] : ctx.baseProfile[k];
+  html += `<div class="card"><h2>🎯 Level Interaction Probabilities</h2>
+    ${probRow('Touch PDH (intraday)', get('touched_pdh'))}
+    ${probRow('Touch PDL (intraday)', get('touched_pdl'))}
+    ${probRow('Close above PDH', get('closed_above_pdh'))}
+    ${probRow('Close below PDL', get('closed_below_pdl'))}
+    ${probRow('Close inside Previous Day range', get('closed_in_range'))}
+    ${probRow('Close inside CPR (BC-TC)', get('closed_in_cpr'))}
+    ${(ctx.opening === 'Gap Up' || ctx.opening === 'Gap Down') ? probRow('Came back in range (gap fill)', get('came_back_in_range')) : ''}
+    ${probRow('Tested opposite extreme', get('tested_opposite'))}
+  </div>`;
+
+  html += `<div class="card"><h2>⏱️ Sustain Probabilities (after first touch)</h2>
+    <div class="section-title">PDH Break</div>
+    ${probRow('Sustain 15 min after touch', ctx.baseProfile.pdh_sustain_15)}
+    ${probRow('Sustain 30 min after touch', ctx.baseProfile.pdh_sustain_30)}
+    ${probRow('Sustain till close', ctx.baseProfile.pdh_sustain_close)}
+    <div class="section-title" style="margin-top:14px;">PDL Break</div>
+    ${probRow('Sustain 15 min after touch', ctx.baseProfile.pdl_sustain_15)}
+    ${probRow('Sustain 30 min after touch', ctx.baseProfile.pdl_sustain_30)}
+    ${probRow('Sustain till close', ctx.baseProfile.pdl_sustain_close)}
+  </div>`;
+
+  html += `<div class="card"><h2>💡 Option-Selling Bias</h2>${generateRecommendations(ctx, mainProfile)}</div>`;
+
+  // LOG SECTION — the bridge to journal
+  html += `<div class="log-section">
+    <h2>📝 Log this prediction</h2>
+    <p style="font-size: 12px; color: var(--ink-2); margin-bottom: 10px;">Save these inputs and the tool's probabilities to your Google Sheet so you can compare against the actual outcome later.</p>
+    <button class="btn-success" id="open-log-modal" style="width: 100%;">📥 Log to Journal</button>
+  </div>`;
+
+  out.innerHTML = html;
+  $('open-log-modal').addEventListener('click', () => openLogModal());
+}
+
+function probRow(label, value) {
+  const cls = probClass(value);
+  const widthPct = (value === null || value === undefined) ? 0 : Math.max(value * 100, 2);
+  return `<div class="prob-row ${cls}">
+    <div class="prob-label">${label}</div>
+    <div class="prob-bar-container"><div class="prob-bar-fill" style="width: ${widthPct}%"></div></div>
+    <div class="prob-val">${pct(value)}</div>
+  </div>`;
+}
+
+function generateRecommendations(ctx, p) {
+  const recs = [];
+  const opening = ctx.opening;
+  const absGap = Math.abs(ctx.gapPct);
+
+  if (opening === 'Gap Up' && absGap >= 1.0) {
+    recs.push({type: 'risky', icon: '🚫', title: 'Selling CE — HIGH RISK', text: `Gap Up ${fmt(ctx.gapPct,2)}% → ~95% close above PDH.`});
+    recs.push({type: 'safe', icon: '✓', title: 'Selling far-OTM PE — SAFE', text: 'Direction up. PE side decays.'});
+    recs.push({type: 'caution', icon: '⚠', title: 'Strangle — CAUTION', text: 'Symmetric strategies get hit on CE side.'});
+  } else if (opening === 'Gap Up' && absGap >= 0.5) {
+    recs.push({type: 'risky', icon: '⚠', title: 'Selling ATM CE — RISKY', text: `Gap Up ${fmt(ctx.gapPct,2)}% → ~95% close above PDH.`});
+    recs.push({type: 'safe', icon: '✓', title: 'Selling far-OTM PE — SAFE', text: 'Bullish bias supports PE decay.'});
+  } else if (opening === 'Gap Down' && absGap >= 1.0) {
+    recs.push({type: 'risky', icon: '🚫', title: 'Selling PE — HIGH RISK', text: `Gap Down ${fmt(Math.abs(ctx.gapPct),2)}% → ~95% close below PDL.`});
+    recs.push({type: 'safe', icon: '✓', title: 'Selling far-OTM CE — SAFE', text: 'Direction down. CE side decays.'});
+  } else if (opening === 'Gap Down' && absGap >= 0.5) {
+    recs.push({type: 'risky', icon: '⚠', title: 'Selling ATM PE — RISKY', text: `Gap Down ${fmt(Math.abs(ctx.gapPct),2)}% → ~90% close below PDL.`});
+    recs.push({type: 'safe', icon: '✓', title: 'Selling far-OTM CE — SAFE', text: 'Bearish bias supports CE decay.'});
+  } else if ((opening === 'Gap Up' || opening === 'Gap Down') && absGap < 0.5) {
+    recs.push({type: 'neutral', icon: 'ℹ', title: 'Small Gap — Manageable', text: `Gap ${fmt(ctx.gapPct,2)}% has meaningful reversion (${pct(p.came_back_in_range)} come back).`});
+  } else if (opening === 'Inside CPR') {
+    recs.push({type: 'safe', icon: '🎯', title: 'Inside CPR — Best theta setup', text: `${pct(p.closed_in_range)} close in range. ${pct(p.closed_in_cpr)} close inside CPR.`});
+  } else if (opening === 'Above CPR (In Range)') {
+    recs.push({type: 'neutral', icon: '⚖', title: 'Above CPR — Bullish bias, mostly range', text: `${pct(p.closed_in_range)} close in range, only ${pct(p.closed_above_pdh)} close above PDH.`});
+  } else if (opening === 'Below CPR (In Range)') {
+    recs.push({type: 'neutral', icon: '⚖', title: 'Below CPR — Bearish bias, mostly range', text: `${pct(p.closed_in_range)} close in range, only ${pct(p.closed_below_pdl)} close below PDL.`});
+  }
+
+  if (ctx.widthTag === 'Wide') {
+    recs.push({type: 'caution', icon: '⚠', title: 'Wide CPR — higher trend probability', text: 'Wide CPR days have ~3× trend-day rate. Size down.'});
+  }
+
+  return recs.map(r => `<div class="rec-box rec-${r.type}"><div class="rec-title"><span class="rec-icon">${r.icon}</span>${r.title}</div><div>${r.text}</div></div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════════════════════════
+function openModal(id) { $(id).classList.add('shown'); }
+function closeModal(id) { $(id).classList.remove('shown'); }
+
+document.querySelectorAll('[data-close-modal]').forEach(b => {
+  b.addEventListener('click', (e) => {
+    const m = e.target.closest('.modal-bg'); if (m) m.classList.remove('shown');
+  });
+});
+
+function openLogModal() {
+  if (!lastContext) { alert('Run Calculate first.'); return; }
+  if (!webAppUrl) { alert('Set Web App URL in Settings first.'); return; }
+  $('log-bias').value = '';
+  $('log-strategy').value = '';
+  $('log-msg').textContent = '';
+  openModal('modal-log');
+}
+
+async function saveLog() {
+  if (!lastContext) return;
+  const bias = $('log-bias').value;
+  const strategy = $('log-strategy').value;
+  if (!bias) { $('log-msg').textContent = '⚠ Pick a bias first.'; $('log-msg').style.color = 'var(--red-dk)'; return; }
+
+  $('log-msg').textContent = 'Saving...'; $('log-msg').style.color = 'var(--ink-3)';
+  setSyncPending('Saving prediction...');
+
+  const ctx = lastContext;
+  const p = ctx.gapProfile && ctx.gapProfile.days >= 20 ? ctx.gapProfile : ctx.baseProfile;
+  const today = new Date().toISOString().slice(0, 10);
+  const predId = 'P-' + Date.now();
+
+  const data = {
+    prediction_id: predId,
+    date: today, index: ctx.index,
+    pdh: ctx.pdh, pdl: ctx.pdl, pdc: ctx.pdc,
+    pivot: ctx.pivot, bc: ctx.bc, tc: ctx.tc,
+    cpr_width: ctx.cprWidth, cpr_width_pct: ctx.cprWidthPct, width_tag: ctx.widthTag,
+    open_915: ctx.open, gap_pct: ctx.gapPct,
+    opening_category: ctx.opening, gap_size_bucket: ctx.gapSize || '',
+    candle5_dir: ctx.dir5 || '', candle15_dir: ctx.dir15 || '',
+    predicted_range_pct: p.range_pct !== undefined ? p.range_pct : ctx.baseProfile.range_pct,
+    predicted_bullish_pct: p.bullish_pct !== undefined ? p.bullish_pct : ctx.baseProfile.bullish_pct,
+    predicted_bearish_pct: p.bearish_pct !== undefined ? p.bearish_pct : ctx.baseProfile.bearish_pct,
+    predicted_close_above_pdh: p.closed_above_pdh !== undefined ? p.closed_above_pdh : ctx.baseProfile.closed_above_pdh,
+    predicted_close_below_pdl: p.closed_below_pdl !== undefined ? p.closed_below_pdl : ctx.baseProfile.closed_below_pdl,
+    predicted_closed_in_range: p.closed_in_range !== undefined ? p.closed_in_range : ctx.baseProfile.closed_in_range,
+    predicted_closed_in_cpr: p.closed_in_cpr !== undefined ? p.closed_in_cpr : ctx.baseProfile.closed_in_cpr,
+    predicted_touch_pdh: p.touched_pdh !== undefined ? p.touched_pdh : ctx.baseProfile.touched_pdh,
+    predicted_touch_pdl: p.touched_pdl !== undefined ? p.touched_pdl : ctx.baseProfile.touched_pdl,
+    my_bias: bias, strategy_decision: strategy,
+    sample_size: p.days || ctx.baseProfile.days
+  };
+
+  try {
+    const r = await sheetsCall('addPrediction', data);
+    if (r.ok) {
+      $('log-msg').textContent = '✓ Saved to Google Sheets! Prediction ID: ' + r.prediction_id;
+      $('log-msg').style.color = 'var(--green-dk)';
+      pingSheets();
+      setTimeout(() => closeModal('modal-log'), 1500);
+    } else {
+      throw new Error(r.error || 'unknown');
+    }
+  } catch (err) {
+    $('log-msg').textContent = '✗ Error: ' + err.message;
+    $('log-msg').style.color = 'var(--red-dk)';
+    pingSheets();
+  }
+}
+
+// ────── Intraday update ──────
+function openIntradayModal(pred) {
+  currentPredictionForUpdate = pred;
+  const now = new Date();
+  const t = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  $('intraday-time').value = t;
+  $('intraday-note').value = '';
+  $('intraday-msg').textContent = '';
+  $('intraday-context').innerHTML = `<strong>${pred.date} · ${pred.index} · ${pred.opening_category}</strong> · PDH ${fmt(pred.pdh)} / PDL ${fmt(pred.pdl)} / Open ${fmt(pred.open_915)}`;
+  openModal('modal-intraday');
+}
+
+async function saveIntraday() {
+  const pred = currentPredictionForUpdate; if (!pred) return;
+  const note = $('intraday-note').value.trim();
+  if (!note) { $('intraday-msg').textContent = '⚠ Write something first.'; $('intraday-msg').style.color = 'var(--red-dk)'; return; }
+  $('intraday-msg').textContent = 'Saving...'; $('intraday-msg').style.color = 'var(--ink-3)';
+  setSyncPending('Saving update...');
+  try {
+    const r = await sheetsCall('addOutcome', {
+      prediction_id: pred.prediction_id,
+      date: normalizeDate(pred.date), index: pred.index,
+      update_type: 'Intraday',
+      update_time: $('intraday-time').value,
+      what_happened: note
+    });
+    if (r.ok) {
+      $('intraday-msg').textContent = '✓ Saved!';
+      $('intraday-msg').style.color = 'var(--green-dk)';
+      pingSheets();
+      setTimeout(() => { closeModal('modal-intraday'); loadJournal(); }, 1000);
+    } else throw new Error(r.error);
+  } catch (err) {
+    $('intraday-msg').textContent = '✗ ' + err.message;
+    $('intraday-msg').style.color = 'var(--red-dk)';
+    pingSheets();
+  }
+}
+
+// ────── EOD update ──────
+function openEodModal(pred) {
+  currentPredictionForUpdate = pred;
+  $('eod-high').value = ''; $('eod-low').value = ''; $('eod-close').value = '';
+  $('eod-pnl').value = ''; $('eod-notes').value = ''; $('eod-msg').textContent = '';
+  $('eod-preview').style.display = 'none';
+  $('eod-context').innerHTML = `<strong>${pred.date} · ${pred.index} · ${pred.opening_category}</strong> · PDH ${fmt(pred.pdh)} / PDL ${fmt(pred.pdl)} / Open ${fmt(pred.open_915)} · Predicted Bullish ${pct(pred.predicted_bullish_pct)}`;
+  openModal('modal-eod');
+  ['eod-high', 'eod-low', 'eod-close', 'eod-pnl'].forEach(id => $(id).oninput = updateEodPreview);
+}
+
+function updateEodPreview() {
+  const pred = currentPredictionForUpdate;
+  const high = parseFloat($('eod-high').value);
+  const low = parseFloat($('eod-low').value);
+  const close = parseFloat($('eod-close').value);
+  const pnl = parseFloat($('eod-pnl').value);
+  if (!high || !low || !close) { $('eod-preview').style.display = 'none'; return; }
+  const open = pred.open_915;
+  const pctMove = ((close - open) / open) * 100;
+  const dayType = classifyDayType(pctMove);
+  const direction = pctMove > 0.05 ? 'Bullish' : pctMove < -0.05 ? 'Bearish' : 'Doji';
+  const brokePdh = high > pred.pdh;
+  const brokePdl = low < pred.pdl;
+  const closedInRange = close >= pred.pdl && close <= pred.pdh;
+  // Tool was right: did predicted direction match actual?
+  const predBullish = pred.predicted_bullish_pct >= 0.5;
+  const actualBullish = direction === 'Bullish';
+  const toolRight = predBullish === actualBullish;
+  $('eod-preview').style.display = 'block';
+  $('eod-preview').innerHTML = `
+    <strong>Auto-derived:</strong>
+    Move ${pctMove >= 0 ? '+' : ''}${pctMove.toFixed(2)}% · Day Type: <strong>${dayType}</strong> · Direction: <strong>${direction}</strong><br>
+    Broke PDH: ${brokePdh ? 'YES' : 'no'} · Broke PDL: ${brokePdl ? 'YES' : 'no'} · Closed in range: ${closedInRange ? 'YES' : 'no'}<br>
+    Tool prediction: ${toolRight ? '<span style="color:var(--green-dk)">✓ matched</span>' : '<span style="color:var(--red-dk)">✗ missed</span>'}
+    ${!isNaN(pnl) ? ' · P&L: <strong>' + fmtPnl(pnl) + '</strong>' : ''}
+  `;
+}
+
+async function saveEod() {
+  const pred = currentPredictionForUpdate; if (!pred) return;
+  const high = parseFloat($('eod-high').value);
+  const low = parseFloat($('eod-low').value);
+  const close = parseFloat($('eod-close').value);
+  if (!high || !low || !close) { $('eod-msg').textContent = '⚠ Enter H/L/C.'; $('eod-msg').style.color = 'var(--red-dk)'; return; }
+  const pnl = parseFloat($('eod-pnl').value);
+  const notes = $('eod-notes').value;
+  const pctMove = ((close - pred.open_915) / pred.open_915) * 100;
+  const dayType = classifyDayType(pctMove);
+  const direction = pctMove > 0.05 ? 'Bullish' : pctMove < -0.05 ? 'Bearish' : 'Doji';
+  const brokePdh = high > pred.pdh;
+  const brokePdl = low < pred.pdl;
+  const closedInRange = close >= pred.pdl && close <= pred.pdh;
+  const predBullish = pred.predicted_bullish_pct >= 0.5;
+  const actualBullish = direction === 'Bullish';
+  const toolRight = predBullish === actualBullish;
+
+  $('eod-msg').textContent = 'Saving...'; $('eod-msg').style.color = 'var(--ink-3)';
+  setSyncPending('Saving EOD...');
+  try {
+    const r = await sheetsCall('addOutcome', {
+      prediction_id: pred.prediction_id,
+      date: normalizeDate(pred.date), index: pred.index,
+      update_type: 'EOD',
+      update_time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      actual_high: high, actual_low: low, actual_close: close,
+      day_type: dayType, direction: direction,
+      broke_pdh: brokePdh, broke_pdl: brokePdl, closed_in_range_actual: closedInRange,
+      tool_was_right: toolRight,
+      eod_pnl: isNaN(pnl) ? null : pnl,
+      what_happened: notes
+    });
+    if (r.ok) {
+      $('eod-msg').textContent = '✓ EOD outcome saved!';
+      $('eod-msg').style.color = 'var(--green-dk)';
+      pingSheets();
+      setTimeout(() => { closeModal('modal-eod'); loadJournal(); }, 1200);
+    } else throw new Error(r.error);
+  } catch (err) {
+    $('eod-msg').textContent = '✗ ' + err.message;
+    $('eod-msg').style.color = 'var(--red-dk)';
+    pingSheets();
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// JOURNAL TAB
+// ════════════════════════════════════════════════════════════════════
+async function loadJournal() {
+  const el = $('journal-list');
+  el.innerHTML = '<p style="color:var(--ink-3);font-size:13px;">Loading...</p>';
+  setSyncPending('Loading journal...');
+  try {
+    const r = await sheetsCall('getAll');
+    if (!r.ok) throw new Error(r.error || 'unknown');
+    cachedData = r.data;
+    pingSheets();
+    renderJournal();
+  } catch (err) {
+    el.innerHTML = `<div class="sample-warn">⚠ Could not load: ${err.message}</div>`;
+    pingSheets();
+  }
+}
+
+function renderJournal() {
+  const el = $('journal-list');
+  if (!cachedData || !cachedData.predictions || !cachedData.predictions.length) {
+    el.innerHTML = `<div class="empty-state"><h2>No predictions logged yet</h2><p>Use the Predict tab → fill inputs → calculate → log to journal.</p></div>`;
+    return;
+  }
+  // Build EOD lookup
+  const eodMap = {};
+  (cachedData.outcomes || []).forEach(o => {
+    if (o.update_type === 'EOD') eodMap[o.prediction_id] = o;
+  });
+  // Pending count
+  const predsList = [...cachedData.predictions].sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+  const pending = predsList.filter(p => !eodMap[p.prediction_id]).length;
+  $('badge-pending').style.display = pending ? 'inline-block' : 'none';
+  $('badge-pending').textContent = pending;
+
+  let html = '<table><thead><tr><th>Date</th><th>Index</th><th>Setup</th><th class="r">Open</th><th class="c">My Bias</th><th class="c">Predicted</th><th class="c">Actual</th><th class="r">P&L</th><th class="c">Tool</th><th class="c">Actions</th></tr></thead><tbody>';
+  predsList.forEach(p => {
+    const eod = eodMap[p.prediction_id];
+    const setup = `${p.opening_category}${p.gap_size_bucket ? ' · ' + p.gap_size_bucket.replace(/ Gap.*/, '') : ''} · ${p.width_tag}`;
+    const myBiasPill = p.my_bias ? `<span class="pill pill-${p.my_bias.toLowerCase()}">${p.my_bias}</span>` : '—';
+    const predBull = Number(p.predicted_bullish_pct) || 0;
+    const predTag = predBull >= 0.5 ? `<span class="pill pill-bull">Bull ${(predBull*100).toFixed(0)}%</span>` : `<span class="pill pill-bear">Bear ${((1-predBull)*100).toFixed(0)}%</span>`;
+    const actualTag = eod ? `<span class="pill pill-${eod.direction === 'Bullish' ? 'bull' : eod.direction === 'Bearish' ? 'bear' : 'doji'}">${eod.direction}</span>` : '<span class="pill pill-pending">Pending</span>';
+    const toolTag = eod ? (eod.tool_was_right === true || eod.tool_was_right === 'true' || eod.tool_was_right === 'TRUE' ? '<span class="pill pill-good">✓</span>' : '<span class="pill pill-bad">✗</span>') : '—';
+    const pnl = eod && eod.eod_pnl !== '' ? fmtPnl(eod.eod_pnl) : '—';
+    const rowClass = eod && eod.eod_pnl !== '' ? (Number(eod.eod_pnl) > 0 ? 'row-good' : Number(eod.eod_pnl) < 0 ? 'row-bad' : '') : '';
+    html += `<tr class="${rowClass}">
+      <td>${normalizeDate(p.date)}</td>
+      <td>${p.index}</td>
+      <td style="font-size:11px;">${setup}</td>
+      <td class="r">${fmt(p.open_915)}</td>
+      <td class="c">${myBiasPill}</td>
+      <td class="c">${predTag}</td>
+      <td class="c">${actualTag}</td>
+      <td class="r">${pnl}</td>
+      <td class="c">${toolTag}</td>
+      <td class="c">
+        <button class="btn-secondary" style="padding:3px 8px;font-size:11px;" onclick='openIntradayFor("${p.prediction_id}")'>+ Update</button>
+        ${!eod ? `<button class="btn-success" style="padding:3px 8px;font-size:11px;margin-top:3px;" onclick='openEodFor("${p.prediction_id}")'>Close EOD</button>` : ''}
+      </td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+window.openIntradayFor = function(predId) {
+  const pred = cachedData.predictions.find(p => p.prediction_id === predId);
+  if (pred) openIntradayModal(pred);
+};
+window.openEodFor = function(predId) {
+  const pred = cachedData.predictions.find(p => p.prediction_id === predId);
+  if (pred) openEodModal(pred);
+};
+
+// ════════════════════════════════════════════════════════════════════
+// NOTES TAB
+// ════════════════════════════════════════════════════════════════════
+async function saveNote() {
+  const cat = $('note-cat').value;
+  const date = $('note-date').value;
+  const tags = $('note-tags').value;
+  const text = $('note-text').value.trim();
+  if (!text) { $('note-feedback').textContent = '⚠ Write something first.'; $('note-feedback').style.color = 'var(--red-dk)'; return; }
+  $('note-feedback').textContent = 'Saving...'; $('note-feedback').style.color = 'var(--ink-3)';
+  setSyncPending('Saving note...');
+  try {
+    const r = await sheetsCall('addNote', { category: cat, date: date || new Date().toISOString().slice(0,10), note: text, tags: tags });
+    if (r.ok) {
+      $('note-feedback').textContent = '✓ Saved!';
+      $('note-feedback').style.color = 'var(--green-dk)';
+      $('note-text').value = ''; $('note-tags').value = '';
+      pingSheets();
+      loadNotes();
+    } else throw new Error(r.error);
+  } catch (err) {
+    $('note-feedback').textContent = '✗ ' + err.message;
+    $('note-feedback').style.color = 'var(--red-dk)';
+    pingSheets();
+  }
+}
+
+async function loadNotes() {
+  const el = $('notes-list');
+  el.innerHTML = '<p style="color:var(--ink-3);font-size:13px;">Loading...</p>';
+  try {
+    const r = await sheetsCall('getAll');
+    if (!r.ok) throw new Error(r.error);
+    cachedData = r.data;
+    pingSheets();
+    const notes = (cachedData.notes || []).slice().reverse();
+    if (!notes.length) { el.innerHTML = '<p style="color:var(--ink-3);font-size:13px;">No notes yet.</p>'; return; }
+    let html = '';
+    notes.forEach(n => {
+      const catKey = (n.category || '').split(' ')[0]; // Lesson/Observation/Setup/Mistake
+      html += `<div class="note-card">
+        <div class="note-meta">
+          <span class="note-cat note-${catKey}">${n.category}</span>
+          <span>${normalizeDate(n.date) || ''}</span>
+          ${n.tags ? `<span style="color:var(--info-ink);">#${n.tags.replace(/,/g, ' #')}</span>` : ''}
+        </div>
+        <div style="font-size: 13px; white-space: pre-wrap;">${escapeHtml(n.note || '')}</div>
+      </div>`;
+    });
+    el.innerHTML = html;
+  } catch (err) {
+    el.innerHTML = `<div class="sample-warn">⚠ ${err.message}</div>`;
+    pingSheets();
+  }
+}
+
+function escapeHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function normalizeDate(d) {
+  if (!d) return '';
+  // If already YYYY-MM-DD, return as-is
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  // If ISO timestamp or Date object, extract YYYY-MM-DD in IST (UTC+5:30)
+  const dt = new Date(d);
+  if (isNaN(dt)) return String(d);
+  const ist = new Date(dt.getTime() + (5.5 * 60 * 60 * 1000));
+  return ist.toISOString().slice(0, 10);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// STATS TAB
+// ════════════════════════════════════════════════════════════════════
+async function loadStats() {
+  const el = $('stats-content');
+  el.innerHTML = '<p style="color:var(--ink-3);font-size:13px;">Loading...</p>';
+  setSyncPending('Loading stats...');
+  try {
+    const r = await sheetsCall('getStats');
+    if (!r.ok) throw new Error(r.error);
+    pingSheets();
+    renderStats(r.stats);
+  } catch (err) {
+    el.innerHTML = `<div class="sample-warn">⚠ ${err.message}</div>`;
+    pingSheets();
+  }
+}
+
+function renderStats(s) {
+  const el = $('stats-content');
+  const t = s.totals;
+  let html = `<div class="stats-hero">
+    <div class="stats-hero-row">
+      <div class="stats-cell"><div class="label">Predictions logged</div><div class="val">${t.predictions_logged}</div><div class="sub">${t.eod_logged} closed</div></div>
+      <div class="stats-cell"><div class="label">Total P&L</div><div class="val ${t.total_pnl >= 0 ? 'gain' : 'loss'}">${fmtPnl(t.total_pnl)}</div><div class="sub">avg ${fmtPnl(t.avg_pnl_per_day)}/day</div></div>
+      <div class="stats-cell"><div class="label">Win rate</div><div class="val">${t.win_rate}%</div><div class="sub">your trades</div></div>
+      <div class="stats-cell"><div class="label">Tool accuracy</div><div class="val">${t.tool_accuracy !== null ? t.tool_accuracy + '%' : '—'}</div><div class="sub">bias prediction</div></div>
+    </div>
+  </div>`;
+
+  if (t.eod_logged < 5) {
+    html += `<div class="card"><div class="sample-warn">ℹ <span>Only ${t.eod_logged} closed predictions so far. Stats become meaningful after ~15-20 entries.</span></div></div>`;
+  }
+
+  html += '<div class="card"><h2>By Opening Category</h2>' + buildStatsTable(s.by_opening) + '</div>';
+  html += '<div class="card"><h2>By Gap Size</h2>' + buildStatsTable(s.by_gap_size) + '</div>';
+  html += '<div class="card"><h2>By CPR Width</h2>' + buildStatsTable(s.by_width) + '</div>';
+  html += '<div class="card"><h2>By Your Bias Decision</h2>' + buildStatsTable(s.by_my_bias) + '</div>';
+  html += '<div class="card"><h2>By Weekday</h2>' + buildStatsTable(s.by_weekday) + '</div>';
+  html += '<div class="card"><h2>By Index</h2>' + buildStatsTable(s.by_index) + '</div>';
+
+  el.innerHTML = html;
+}
+
+function buildStatsTable(groups) {
+  const keys = Object.keys(groups || {});
+  if (!keys.length) return '<p style="color:var(--ink-3);font-size:12px;">No data yet.</p>';
+  let h = '<table><thead><tr><th>Group</th><th class="r">Days</th><th class="r">Total P&L</th><th class="r">Avg/day</th><th class="r">Win%</th><th class="r">Best</th><th class="r">Worst</th></tr></thead><tbody>';
+  // Sort by total P&L desc
+  keys.sort((a, b) => (groups[b].total_pnl || 0) - (groups[a].total_pnl || 0));
+  keys.forEach(k => {
+    const g = groups[k];
+    const rowClass = g.total_pnl > 0 ? 'row-good' : g.total_pnl < 0 ? 'row-bad' : '';
+    h += `<tr class="${rowClass}"><td>${k}</td><td class="r">${g.days}</td><td class="r"><strong>${fmtPnl(g.total_pnl)}</strong></td><td class="r">${fmtPnl(g.avg_pnl)}</td><td class="r">${g.win_rate}%</td><td class="r">${fmtPnl(g.best_day)}</td><td class="r">${fmtPnl(g.worst_day)}</td></tr>`;
+  });
+  h += '</tbody></table>';
+  return h;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SETTINGS / EXPORT
+// ════════════════════════════════════════════════════════════════════
+$('open-settings').addEventListener('click', () => {
+  $('setting-url').value = webAppUrl;
+  $('setting-msg').textContent = '';
+  openModal('modal-settings');
+});
+
+$('save-url').addEventListener('click', async () => {
+  const url = $('setting-url').value.trim();
+  if (!url) { $('setting-msg').textContent = '⚠ Enter URL.'; $('setting-msg').style.color = 'var(--red-dk)'; return; }
+  webAppUrl = url;
+  localStorage.setItem('cpr_url', url);
+  $('setting-msg').textContent = 'Testing connection...';
+  $('setting-msg').style.color = 'var(--ink-3)';
+  const ok = await pingSheets();
+  if (ok) {
+    $('setting-msg').textContent = '✓ Connected to Google Sheets!';
+    $('setting-msg').style.color = 'var(--green-dk)';
+  } else {
+    $('setting-msg').textContent = '✗ Could not reach Sheets. Double-check URL.';
+    $('setting-msg').style.color = 'var(--red-dk)';
+  }
+});
+
+$('clear-url').addEventListener('click', () => {
+  localStorage.removeItem('cpr_url');
+  webAppUrl = '';
+  $('setting-url').value = '';
+  pingSheets();
+});
+
+$('export-json').addEventListener('click', async () => {
+  setSyncPending('Fetching for export...');
+  try {
+    const r = await sheetsCall('getAll');
+    if (!r.ok) throw new Error(r.error);
+    const blob = new Blob([JSON.stringify(r.data, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cpr_journal_' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    pingSheets();
+  } catch (err) {
+    alert('Export failed: ' + err.message);
+    pingSheets();
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+// WIRE UP
+// ════════════════════════════════════════════════════════════════════
+document.querySelectorAll('#index-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#index-toggle button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    currentIndex = b.dataset.val;
+    if ($('in-pdh').value && $('in-open').value) compute();
+  });
+});
+
+$('toggle-advanced').addEventListener('click', () => {
+  $('advanced').classList.toggle('shown');
+  $('toggle-advanced').textContent = $('advanced').classList.contains('shown')
+    ? '▲ Hide first 5/15-min candle inputs'
+    : '▼ Show first 5/15-min candle inputs (optional)';
+});
+
+$('calc').addEventListener('click', compute);
+$('reset').addEventListener('click', () => {
+  document.querySelectorAll('#tab-predict input[type=number]').forEach(i => i.value = '');
+  $('output').innerHTML = `<div class="empty-state"><h2>📊 Awaiting inputs</h2><p>Enter PDH, PDL, PDC, and today's 9:15 open.<br>Click Calculate to see what 2,134 historical days say.</p></div>`;
+  $('err').classList.remove('shown');
+  lastContext = null;
+});
+
+document.querySelectorAll('#tab-predict input').forEach(inp => {
+  inp.addEventListener('keypress', e => { if (e.key === 'Enter') compute(); });
+});
+
+$('save-log').addEventListener('click', saveLog);
+$('save-intraday').addEventListener('click', saveIntraday);
+$('save-eod').addEventListener('click', saveEod);
+$('save-note').addEventListener('click', saveNote);
+
+$('refresh-journal').addEventListener('click', loadJournal);
+$('refresh-notes').addEventListener('click', loadNotes);
+$('refresh-stats').addEventListener('click', loadStats);
+
+// Tab navigation
+document.querySelectorAll('.tab').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    $('tab-' + b.dataset.tab).classList.add('active');
+    if (b.dataset.tab === 'journal') loadJournal();
+    if (b.dataset.tab === 'notes') loadNotes();
+    if (b.dataset.tab === 'stats') loadStats();
+  });
+});
+
+// Default date for note input
+$('note-date').value = new Date().toISOString().slice(0, 10);
+
+// Initial ping
+if (webAppUrl) pingSheets();
+</script>
+</body>
+</html>
